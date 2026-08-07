@@ -1,46 +1,37 @@
 import {
   Clock3,
+  Search,
+  UserCheck,
   CheckCircle2,
-  LoaderCircle,
-  MapPin,
 } from "lucide-react";
 
-export default function StatusCard({ active }) {
-  if (!active) {
-    return (
-      <section className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
+import { useRequest } from "../../context/RequestContext";
 
-        <div className="flex items-center justify-between">
+export default function StatusCard() {
+  const { requestStatus } = useRequest();
 
-          <div>
+  let title = "No Active Request";
+  let subtitle = "You haven't submitted an emergency request yet.";
+  let color = "text-slate-300";
+  let bg = "bg-slate-500/20";
+  let Icon = Clock3;
 
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-300">
-              Current Request
-            </p>
+  if (requestStatus === "searching") {
+    title = "Searching for Responders";
+    subtitle =
+      "Nearby volunteers and organizations are being notified.";
+    color = "text-yellow-300";
+    bg = "bg-yellow-500/20";
+    Icon = Search;
+  }
 
-            <h2 className="mt-2 text-3xl font-bold text-white">
-              No Active Request
-            </h2>
-
-          </div>
-
-          <div className="rounded-full bg-slate-500/20 px-4 py-2 text-sm font-semibold text-slate-300">
-            Inactive
-          </div>
-
-        </div>
-
-        <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
-
-          <p className="text-slate-300">
-            You currently have no emergency request.
-            Press <span className="font-semibold text-white">Send Emergency Alert</span> if you require immediate assistance.
-          </p>
-
-        </div>
-
-      </section>
-    );
+  if (requestStatus === "assigned") {
+    title = "Volunteer Assigned";
+    subtitle =
+      "A nearby responder has accepted your request and is on the way.";
+    color = "text-emerald-300";
+    bg = "bg-emerald-500/20";
+    Icon = UserCheck;
   }
 
   return (
@@ -50,93 +41,57 @@ export default function StatusCard({ active }) {
 
         <div>
 
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-300">
-            Current Request
+          <p className="text-sm uppercase tracking-[0.25em] text-slate-400">
+            REQUEST STATUS
           </p>
 
-          <h2 className="mt-2 text-3xl font-bold text-white">
-            Searching for Volunteers
+          <h2 className={`mt-3 text-3xl font-bold ${color}`}>
+            {title}
           </h2>
 
+          <p className="mt-4 max-w-xl leading-7 text-slate-300">
+            {subtitle}
+          </p>
+
         </div>
 
-        <div className="rounded-full bg-amber-500/20 px-4 py-2 text-sm font-semibold text-amber-300">
-          Searching...
+        <div
+          className={`flex h-20 w-20 items-center justify-center rounded-full ${bg}`}
+        >
+          <Icon
+            size={38}
+            className={color}
+          />
         </div>
 
       </div>
 
-      <div className="mt-10 grid gap-6 md:grid-cols-3">
+      {requestStatus === "assigned" && (
+        <div className="mt-8 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-5">
 
-        <div className="rounded-2xl bg-white/5 p-5">
+          <div className="flex items-center gap-3">
 
-          <LoaderCircle
-            size={28}
-            className="mb-3 animate-spin text-amber-300"
-          />
+            <CheckCircle2
+              size={24}
+              className="text-emerald-300"
+            />
 
-          <p className="text-sm text-slate-400">
-            Status
-          </p>
+            <div>
 
-          <h3 className="mt-2 text-xl font-semibold text-white">
-            Finding Nearby Volunteers
-          </h3>
+              <h3 className="font-semibold text-white">
+                Help is on the way
+              </h3>
 
-        </div>
+              <p className="mt-1 text-slate-300">
+                Estimated arrival: 10–15 minutes
+              </p>
 
-        <div className="rounded-2xl bg-white/5 p-5">
+            </div>
 
-          <Clock3
-            size={28}
-            className="mb-3 text-sky-300"
-          />
-
-          <p className="text-sm text-slate-400">
-            Request Time
-          </p>
-
-          <h3 className="mt-2 text-xl font-semibold text-white">
-            Just Now
-          </h3>
+          </div>
 
         </div>
-
-        <div className="rounded-2xl bg-white/5 p-5">
-
-          <MapPin
-            size={28}
-            className="mb-3 text-red-300"
-          />
-
-          <p className="text-sm text-slate-400">
-            Location
-          </p>
-
-          <h3 className="mt-2 text-xl font-semibold text-white">
-            Sharing Location
-          </h3>
-
-        </div>
-
-      </div>
-
-      <div className="mt-8 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-5">
-
-        <div className="flex items-center gap-3">
-
-          <LoaderCircle
-            size={20}
-            className="animate-spin text-amber-300"
-          />
-
-          <p className="text-slate-200">
-            Your request has been received. We are notifying nearby volunteers and emergency responders.
-          </p>
-
-        </div>
-
-      </div>
+      )}
 
     </section>
   );
