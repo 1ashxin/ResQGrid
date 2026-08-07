@@ -56,23 +56,45 @@ ResQGrid provides a dual-sided, crisis-focused interface:
 ## Project Structure
 
 ```text
-FrontEnd/
-├── src/
-│   ├── components/
-│   │   └── Navbar.jsx              # Navigation header across portals
-│   ├── pages/
-│   │   ├── Home.jsx                # Landing page & quick portal select
-│   │   ├── VictimDashboard.jsx     # Victim hub
-│   │   ├── RequestHelp.jsx         # Emergency form submission
-│   │   ├── TrackStatus.jsx         # Live status timeline
-│   │   ├── VolunteerDashboard.jsx  # Volunteer field overview
-│   │   └── VolunteerTasks.jsx      # Task assignment & management portal
-│   ├── App.jsx                     # Layout & App routing
-│   ├── index.css                   # Global styles & Tailwind imports
-│   └── main.jsx                    # Application entry point
-├── package.json
-├── tailwind.config.js
-└── vite.config.js
+RESQGRID/
+├── BackEnd/                         # Backend APIs & Server (Ashwin Thakur)
+│   ├── config/                      # Server & DB configurations
+│   ├── controllers/                 # SOS, shelter capacity, and user role handlers
+│   ├── models/                      # Database schemas (Victim, Volunteer, NGO, Admin)
+│   ├── routes/                      # REST API endpoint definitions
+│   └── server.js                    # Primary server entry point
+│
+├── core_security_and_logic/         # Data, Security & Spatial Services
+│   ├── location_intel/              # Geolocation & Spatial Queries (Rajit Acharya)
+│   │   ├── proximity_search.js      # Nearest volunteer-to-SOS matching
+│   │   └── spatial_queries.js       # PostGIS / GeoJSON location queries
+│   │
+│   └── security_and_priority/       # Data Engine & Encryption (Akshat Muchhala)
+│       ├── priority_scorer.py       # Priority-based resource allocation logic
+│       ├── encryption_utils.py      # User data encryption & hashing
+│       └── system_logger.py         # Audit & activity logging
+│
+├── Docs/                            # Project Documentation & Pitch (Swara Kalekar)
+│   ├── architecture_diagrams/       # System & workflow diagrams
+│   ├── presentation_report.pdf      # Project report & slides
+│   ├── test_cases.md                # QA bug testing checklist
+│   └── demo_script.md               # Presentation & demo script
+│
+└── FrontEnd/                        # Client Web Applications
+    ├── public/
+    └── src/
+        ├── assets/                  # Logos, hero images, & static icons
+        ├── components/
+        │   ├── victim/              # SOS ping & victim UI (Yashana Gupta)
+        │   ├── volunteer/           # Task acceptance & registration UI (Yashana Gupta)
+        │   ├── admin_ngo/           # Command dashboard, maps, heatmaps (Samriddhi Shedpure)
+        │   └── common/              # Shared UI components
+        ├── context/                 # React Contexts (Request & Notification state)
+        ├── layouts/                 # Dashboard & navigation layouts
+        ├── pages/                   # Application route pages
+        ├── routes/                  # App routing configuration (AppRoutes.jsx)
+        ├── services/                # Axios API integrations
+        └── App.jsx                  # Root React component
 
 ```
 
