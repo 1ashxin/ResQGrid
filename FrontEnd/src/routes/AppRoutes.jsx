@@ -11,19 +11,15 @@ import NotFound from "../pages/NotFound";
 export default function AppRoutes() {
   return (
     <Routes>
-
+      {/* Landing */}
       <Route
         path="/"
         element={<LandingPage />}
       />
 
+      {/* Victim */}
       <Route
-        path="/login"
-        element={<Login />}
-      />
-
-      <Route
-        path="/request"
+        path="/victim/request"
         element={<SOSRequest />}
       />
 
@@ -32,9 +28,16 @@ export default function AppRoutes() {
         element={<VictimDashboard />}
       />
 
+      {/* Volunteer */}
       <Route
         path="/volunteer"
         element={<VolunteerDashboard />}
+      />
+
+      {/* Admin */}
+      <Route
+        path="/login"
+        element={<Login />}
       />
 
       <Route
@@ -42,11 +45,11 @@ export default function AppRoutes() {
         element={<AdminDashboard />}
       />
 
+      {/* 404 */}
       <Route
         path="*"
         element={<NotFound />}
       />
-
     </Routes>
   );
 }
