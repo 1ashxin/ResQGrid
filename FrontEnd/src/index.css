@@ -1,5 +1,63 @@
 @import "tailwindcss";
 
+/* ======================================================
+   RESQGRID THEME
+====================================================== */
+
+:root {
+  /* ===========================
+     BACKGROUNDS
+  =========================== */
+
+  --bg-primary: #223449;
+  --bg-secondary: #2b4259;
+  --bg-card: rgba(255, 255, 255, 0.05);
+  --bg-card-hover: rgba(255, 255, 255, 0.08);
+
+  /* ===========================
+     BORDERS
+  =========================== */
+
+  --border: rgba(255, 255, 255, 0.10);
+
+  /* ===========================
+     TEXT
+  =========================== */
+
+  --text-primary: #ffffff;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+
+  /* ===========================
+     BRAND
+  =========================== */
+
+  --primary: #7dd3fc;
+  --primary-hover: #38bdf8;
+
+  /* ===========================
+     STATUS
+  =========================== */
+
+  --danger: #ff6b6b;
+  --danger-hover: #ff7d7d;
+
+  --success: #22c55e;
+  --success-hover: #34d399;
+
+  --warning: #facc15;
+
+  /* ===========================
+     GLASS
+  =========================== */
+
+  --glass: blur(18px);
+}
+
+/* ======================================================
+   GLOBAL
+====================================================== */
+
 html,
 body,
 #root {
@@ -15,6 +73,161 @@ body {
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  background: #0f172a;
+
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* ======================================================
+   BACKGROUND UTILITIES
+====================================================== */
+
+.bg-primary {
+  background: var(--bg-primary);
+}
+
+.bg-secondary {
+  background: var(--bg-secondary);
+}
+
+.bg-card {
+  background: var(--bg-card);
+  backdrop-filter: var(--glass);
+}
+
+.bg-card:hover {
+  background: var(--bg-card-hover);
+}
+
+.bg-brand {
+  background: var(--primary);
+}
+
+.bg-danger {
+  background: var(--danger);
+}
+
+.bg-success {
+  background: var(--success);
+}
+
+/* ======================================================
+   GLASS COMPONENTS
+====================================================== */
+
+.card-glass {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  backdrop-filter: var(--glass);
+}
+
+.input-glass {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  backdrop-filter: var(--glass);
+}
+
+.input-glass::placeholder {
+  color: var(--text-muted);
+}
+
+.input-glass:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* ======================================================
+   BORDER UTILITIES
+====================================================== */
+
+.border-glass {
+  border: 1px solid var(--border);
+}
+
+/* ======================================================
+   TEXT UTILITIES
+====================================================== */
+
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-brand {
+  color: var(--primary);
+}
+
+.text-danger {
+  color: var(--danger);
+}
+
+.text-success {
+  color: var(--success);
+}
+
+.text-warning {
+  color: var(--warning);
+}
+
+/* ======================================================
+   SECTION UTILITIES
+====================================================== */
+
+.section-title {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.section-subtitle {
+  color: var(--text-secondary);
+}
+
+.section-label {
+  color: var(--primary);
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+/* ======================================================
+   BUTTONS
+====================================================== */
+
+.btn-primary {
+  background: var(--primary);
   color: white;
+  transition: all 0.25s ease;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+  transition: all 0.25s ease;
+}
+
+.btn-danger:hover {
+  background: var(--danger-hover);
+}
+
+.btn-success {
+  background: var(--success);
+  color: white;
+  transition: all 0.25s ease;
+}
+
+.btn-success:hover {
+  background: var(--success-hover);
 }

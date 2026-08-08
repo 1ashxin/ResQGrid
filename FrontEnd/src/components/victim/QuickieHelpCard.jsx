@@ -10,41 +10,45 @@ const resources = [
     icon: Hospital,
     title: "Nearest Hospital",
     distance: "1.8 km",
-    color: "text-emerald-300",
+    color: "text-success",
   },
   {
     icon: Tent,
     title: "Relief Camp",
     distance: "2.4 km",
-    color: "text-amber-300",
+    color: "text-warning",
   },
   {
     icon: UtensilsCrossed,
     title: "Food Distribution",
     distance: "3.1 km",
-    color: "text-sky-300",
+    color: "text-brand",
   },
 ];
 
 export default function QuickieHelpCard() {
   return (
-    <section className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
+    <section className="card-glass rounded-3xl p-8">
+
+      {/* Header */}
 
       <div className="flex items-center justify-between">
 
         <div>
 
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-300">
+          <p className="section-label text-sm">
             Nearby Assistance
           </p>
 
-          <h2 className="mt-2 text-3xl font-bold text-white">
+          <h2 className="section-title mt-2 text-3xl">
             Help Around You
           </h2>
 
         </div>
 
       </div>
+
+      {/* Resources */}
 
       <div className="mt-8 space-y-4">
 
@@ -54,24 +58,27 @@ export default function QuickieHelpCard() {
           return (
             <div
               key={resource.title}
-              className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-5 transition-all duration-300 hover:border-sky-300/30 hover:bg-white/10"
+              className="card-glass flex items-center justify-between rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1"
             >
+
               <div className="flex items-center gap-4">
 
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
+                <div className="card-glass flex h-12 w-12 items-center justify-center rounded-xl">
+
                   <Icon
                     size={24}
                     className={resource.color}
                   />
+
                 </div>
 
                 <div>
 
-                  <h3 className="font-semibold text-white">
+                  <h3 className="section-title text-lg">
                     {resource.title}
                   </h3>
 
-                  <p className="text-sm text-slate-400">
+                  <p className="text-muted text-sm">
                     {resource.distance} away
                   </p>
 
@@ -81,7 +88,7 @@ export default function QuickieHelpCard() {
 
               <ArrowRight
                 size={20}
-                className="text-slate-400"
+                className="text-muted transition-transform duration-300 group-hover:translate-x-1"
               />
 
             </div>

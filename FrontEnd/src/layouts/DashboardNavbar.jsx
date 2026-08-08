@@ -15,7 +15,8 @@ export default function DashboardNavbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#223449]/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-glass bg-primary/90 backdrop-blur-xl">
+
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
 
         {/* Logo */}
@@ -30,14 +31,17 @@ export default function DashboardNavbar() {
           />
 
           <div>
-            <h1 className="text-xl font-bold text-white">
+
+            <h1 className="section-title text-xl">
               ResQGrid
             </h1>
 
-            <p className="text-xs text-slate-300">
+            <p className="section-subtitle text-xs">
               From Chaos to Coordination
             </p>
+
           </div>
+
         </Link>
 
         {/* Navigation */}
@@ -47,8 +51,8 @@ export default function DashboardNavbar() {
             to="/"
             className={`rounded-xl px-5 py-2 transition ${
               location.pathname === "/"
-                ? "bg-sky-500 text-white"
-                : "text-slate-300 hover:bg-white/10"
+                ? "btn-primary"
+                : "text-secondary hover:bg-card"
             }`}
           >
             Home
@@ -58,8 +62,8 @@ export default function DashboardNavbar() {
             to="/victim"
             className={`rounded-xl px-5 py-2 transition ${
               active("/victim")
-                ? "bg-sky-500 text-white"
-                : "text-slate-300 hover:bg-white/10"
+                ? "btn-primary"
+                : "text-secondary hover:bg-card"
             }`}
           >
             Victim
@@ -69,8 +73,8 @@ export default function DashboardNavbar() {
             to="/volunteer"
             className={`rounded-xl px-5 py-2 transition ${
               active("/volunteer")
-                ? "bg-sky-500 text-white"
-                : "text-slate-300 hover:bg-white/10"
+                ? "btn-primary"
+                : "text-secondary hover:bg-card"
             }`}
           >
             Volunteer
@@ -81,28 +85,41 @@ export default function DashboardNavbar() {
         {/* Right Side */}
         <div className="flex items-center gap-4">
 
-          <button className="rounded-xl bg-white/5 p-3 transition hover:bg-white/10">
-            <Search size={20} />
+          <button className="card-glass rounded-xl p-3 transition-all duration-300 hover:scale-105">
+
+            <Search
+              size={20}
+              className="text-secondary"
+            />
+
           </button>
 
-          <button className="relative rounded-xl bg-white/5 p-3 transition hover:bg-white/10">
-            <Bell size={20} />
+          <button className="card-glass relative rounded-xl p-3 transition-all duration-300 hover:scale-105">
 
-            <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold">
+            <Bell
+              size={20}
+              className="text-secondary"
+            />
+
+            <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-danger text-xs font-bold text-primary">
               2
             </span>
+
           </button>
 
-          <button className="rounded-xl bg-white/5 p-2 transition hover:bg-white/10">
+          <button className="card-glass rounded-xl p-2 transition-all duration-300 hover:scale-105">
+
             <UserCircle2
               size={34}
-              className="text-sky-300"
+              className="text-brand"
             />
+
           </button>
 
         </div>
 
       </div>
+
     </header>
   );
 }

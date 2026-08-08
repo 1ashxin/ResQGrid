@@ -15,32 +15,34 @@ export default function ResponderCard() {
   if (requestStatus !== "assigned") return null;
 
   return (
-    <section className="mt-8 rounded-3xl border border-emerald-400/20 bg-gradient-to-br from-emerald-500/10 to-emerald-400/5 p-8 backdrop-blur-xl">
+    <section className="card-glass mt-8 rounded-3xl p-8">
 
-      <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-300">
+      <p className="section-label text-success text-sm">
         Assigned Responder
       </p>
 
       <div className="mt-8 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
 
+        {/* Volunteer Info */}
+
         <div className="flex items-center gap-5">
 
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20">
+          <div className="card-glass flex h-20 w-20 items-center justify-center rounded-full">
 
             <UserRound
               size={40}
-              className="text-emerald-300"
+              className="text-success"
             />
 
           </div>
 
           <div>
 
-            <h2 className="text-3xl font-bold">
+            <h2 className="section-title text-3xl">
               Rahul Sharma
             </h2>
 
-            <p className="mt-1 text-slate-300">
+            <p className="section-subtitle mt-1">
               Medical Volunteer
             </p>
 
@@ -48,10 +50,12 @@ export default function ResponderCard() {
 
               <Star
                 size={18}
-                className="fill-yellow-400 text-yellow-400"
+                className="fill-yellow-400 text-warning"
               />
 
-              <span>4.9 Rating</span>
+              <span className="text-secondary">
+                4.9 Rating
+              </span>
 
             </div>
 
@@ -59,35 +63,37 @@ export default function ResponderCard() {
 
         </div>
 
+        {/* Stats */}
+
         <div className="grid gap-4 sm:grid-cols-2">
 
-          <div className="rounded-2xl bg-white/5 p-5">
+          <div className="card-glass rounded-2xl p-5">
 
             <MapPin
-              className="mb-2 text-red-300"
+              className="mb-2 text-danger"
             />
 
-            <p className="text-sm text-slate-400">
+            <p className="text-muted text-sm">
               Distance
             </p>
 
-            <h3 className="mt-1 font-semibold">
+            <h3 className="section-title mt-1">
               2.4 km
             </h3>
 
           </div>
 
-          <div className="rounded-2xl bg-white/5 p-5">
+          <div className="card-glass rounded-2xl p-5">
 
             <Clock3
-              className="mb-2 text-sky-300"
+              className="mb-2 text-brand"
             />
 
-            <p className="text-sm text-slate-400">
+            <p className="text-muted text-sm">
               ETA
             </p>
 
-            <h3 className="mt-1 font-semibold">
+            <h3 className="section-title mt-1">
               11 mins
             </h3>
 
@@ -97,9 +103,11 @@ export default function ResponderCard() {
 
       </div>
 
+      {/* Action Buttons */}
+
       <div className="mt-8 grid gap-4 md:grid-cols-2">
 
-        <button className="flex items-center justify-center gap-3 rounded-2xl bg-emerald-500 py-4 font-semibold transition hover:bg-emerald-400">
+        <button className="btn-success flex items-center justify-center gap-3 rounded-2xl py-4 font-semibold">
 
           <Phone size={20} />
 
@@ -107,7 +115,7 @@ export default function ResponderCard() {
 
         </button>
 
-        <button className="flex items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 py-4 font-semibold transition hover:bg-white/10">
+        <button className="card-glass text-primary flex items-center justify-center gap-3 rounded-2xl py-4 font-semibold transition hover:scale-[1.02]">
 
           <MessageCircle size={20} />
 

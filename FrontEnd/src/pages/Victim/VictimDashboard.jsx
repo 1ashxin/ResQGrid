@@ -15,29 +15,39 @@ export default function VictimDashboard() {
 
       <VictimHeader />
 
-      <div className="mt-10">
+      {/* Emergency Request */}
+      <section className="mt-10">
         <SOSCard />
-      </div>
+      </section>
 
-      <div className="mt-8">
+      {/* Request Status */}
+      <section className="mt-8">
         <StatusCard />
-      </div>
+      </section>
 
-      <ActivityTimeline />
+      {/* Live Activity Timeline */}
+      <section className="mt-8">
+        <ActivityTimeline />
+      </section>
 
-      <ResponderCard />
+      {/* Assigned Responder */}
+      <section className="mt-8">
+        <ResponderCard />
+      </section>
 
-      <div className="mt-8">
+      {/* Live Response Map */}
+      <section className="mt-8">
         <ResponseMap />
-      </div>
+      </section>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-2">
+      {/* Quick Actions + Alerts */}
+      <section className="mt-8 grid gap-8 lg:grid-cols-2">
 
         <QuickieHelpCard />
 
         <AlertCard />
 
-      </div>
+      </section>
 
     </DashboardLayout>
   );

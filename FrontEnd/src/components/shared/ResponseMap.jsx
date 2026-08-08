@@ -4,38 +4,37 @@ import {
   Tent,
   Truck,
   UserRound,
-  Route,
 } from "lucide-react";
 
 export default function ResponseMap() {
   return (
-    <section className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
+    <section className="card-glass rounded-3xl p-8">
 
       {/* Header */}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
 
         <div>
 
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-sky-300">
+          <p className="section-label text-sm">
             Live Response Map
           </p>
 
-          <h2 className="mt-2 text-3xl font-bold text-white">
+          <h2 className="section-title mt-2 text-3xl">
             Disaster Coordination
           </h2>
 
-          <p className="mt-3 max-w-2xl text-slate-300">
+          <p className="section-subtitle mt-3 max-w-2xl">
             Track the victim, assigned volunteer and nearby emergency
             resources in real time.
           </p>
 
         </div>
 
-        <div className="flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-5 py-2">
+        <div className="card-glass flex items-center gap-2 rounded-full px-5 py-2">
 
-          <span className="h-3 w-3 animate-pulse rounded-full bg-emerald-400"></span>
+          <span className="h-3 w-3 animate-pulse rounded-full bg-success"></span>
 
-          <span className="font-semibold text-emerald-300">
+          <span className="font-semibold text-success">
             LIVE
           </span>
 
@@ -44,7 +43,7 @@ export default function ResponseMap() {
       </div>
 
       {/* Map */}
-      <div className="relative mt-8 h-[520px] overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#304A66] via-[#2A415B] to-[#1C2E44]">
+      <div className="relative mt-8 h-[520px] overflow-hidden rounded-3xl bg-secondary">
 
         {/* Grid */}
         <div className="absolute inset-0 opacity-10">
@@ -80,7 +79,7 @@ export default function ResponseMap() {
         {/* Relief Camp */}
         <Marker
           icon={<Tent size={22} />}
-          color="bg-amber-500"
+          color="bg-yellow-500"
           label="Relief Camp"
           position="left-[18%] top-[20%]"
         />
@@ -96,11 +95,11 @@ export default function ResponseMap() {
         {/* Volunteer */}
         <div className="absolute left-[52%] top-[42%]">
 
-          <div className="absolute inset-0 scale-[2.2] animate-ping rounded-full bg-emerald-500/30"></div>
+          <div className="absolute inset-0 scale-[2.2] animate-ping rounded-full bg-green-500/30"></div>
 
           <Marker
             icon={<UserRound size={22} />}
-            color="bg-emerald-500"
+            color="bg-green-500"
             label="Volunteer"
           />
 
@@ -121,7 +120,7 @@ export default function ResponseMap() {
 
       </div>
 
-      {/* Bottom Status Cards */}
+      {/* Status Cards */}
       <div className="mt-8 grid gap-5 md:grid-cols-4">
 
         <InfoCard
@@ -151,11 +150,11 @@ export default function ResponseMap() {
 
         <Legend color="bg-red-500" label="Victim" />
 
-        <Legend color="bg-emerald-500" label="Volunteer" />
+        <Legend color="bg-green-500" label="Volunteer" />
 
         <Legend color="bg-sky-500" label="Hospital" />
 
-        <Legend color="bg-amber-500" label="Relief Camp" />
+        <Legend color="bg-yellow-500" label="Relief Camp" />
 
         <Legend color="bg-violet-500" label="Supply Vehicle" />
 
@@ -169,16 +168,14 @@ function Marker({ icon, color, label, position = "" }) {
   return (
     <div className={`absolute ${position}`}>
 
-      <div className={`flex h-14 w-14 items-center justify-center rounded-full ${color} text-white shadow-xl`}>
-
+      <div
+        className={`flex h-14 w-14 items-center justify-center rounded-full ${color} text-white shadow-xl`}
+      >
         {icon}
-
       </div>
 
       <div className="mt-2 rounded-full bg-black/40 px-3 py-1 text-center text-xs text-white backdrop-blur-md">
-
         {label}
-
       </div>
 
     </div>
@@ -187,11 +184,11 @@ function Marker({ icon, color, label, position = "" }) {
 
 function Legend({ color, label }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-white/5 px-4 py-3">
+    <div className="flex items-center gap-2">
 
-      <div className={`h-4 w-4 rounded-full ${color}`} />
+      <div className={`h-4 w-4 rounded-full ${color}`}></div>
 
-      <span className="text-sm text-slate-300">
+      <span className="text-secondary text-sm">
         {label}
       </span>
 
@@ -201,13 +198,13 @@ function Legend({ color, label }) {
 
 function InfoCard({ title, value }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+    <div className="card-glass rounded-2xl p-5">
 
-      <p className="text-sm text-slate-400">
+      <p className="text-muted text-sm">
         {title}
       </p>
 
-      <h3 className="mt-2 text-lg font-semibold text-white">
+      <h3 className="section-title mt-2 text-lg">
         {value}
       </h3>
 

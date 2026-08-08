@@ -2,9 +2,9 @@ import { ShieldCheck } from "lucide-react";
 
 export default function VolunteerHeader() {
   return (
-    <section>
+    <section className="mb-12">
 
-      <p className="text-sm font-semibold uppercase tracking-[0.3em] text-sky-300">
+      <p className="section-label text-sm">
         Volunteer Dashboard
       </p>
 
@@ -12,31 +12,31 @@ export default function VolunteerHeader() {
 
         <div>
 
-          <h1 className="text-5xl font-bold text-white">
+          <h1 className="section-title text-5xl">
             Emergency Response Center
           </h1>
 
-          <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
+          <p className="section-subtitle mt-4 max-w-3xl text-lg leading-8">
             Review nearby emergency requests, coordinate with victims,
             and provide rapid disaster assistance through ResQGrid.
           </p>
 
         </div>
 
-        <div className="flex items-center gap-4 rounded-3xl border border-emerald-400/20 bg-emerald-500/10 px-6 py-5">
+        <div className="card-glass flex items-center gap-4 rounded-3xl px-6 py-5">
 
           <ShieldCheck
             size={36}
-            className="text-emerald-300"
+            className="text-success"
           />
 
           <div>
 
-            <p className="text-sm text-slate-300">
+            <p className="text-muted text-sm">
               Volunteer Status
             </p>
 
-            <h3 className="text-xl font-bold text-white">
+            <h3 className="section-title text-xl text-success">
               Available
             </h3>
 

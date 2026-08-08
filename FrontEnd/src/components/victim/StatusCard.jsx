@@ -12,16 +12,16 @@ export default function StatusCard() {
 
   let title = "No Active Request";
   let subtitle = "You haven't submitted an emergency request yet.";
-  let color = "text-slate-300";
-  let bg = "bg-slate-500/20";
+  let color = "text-muted";
+  let bg = "bg-card";
   let Icon = Clock3;
 
   if (requestStatus === "searching") {
     title = "Searching for Responders";
     subtitle =
       "Nearby volunteers and organizations are being notified.";
-    color = "text-yellow-300";
-    bg = "bg-yellow-500/20";
+    color = "text-warning";
+    bg = "bg-card";
     Icon = Search;
   }
 
@@ -29,27 +29,27 @@ export default function StatusCard() {
     title = "Volunteer Assigned";
     subtitle =
       "A nearby responder has accepted your request and is on the way.";
-    color = "text-emerald-300";
-    bg = "bg-emerald-500/20";
+    color = "text-success";
+    bg = "bg-card";
     Icon = UserCheck;
   }
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
+    <section className="card-glass rounded-3xl p-8">
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
 
         <div>
 
-          <p className="text-sm uppercase tracking-[0.25em] text-slate-400">
-            REQUEST STATUS
+          <p className="section-label text-sm">
+            Request Status
           </p>
 
-          <h2 className={`mt-3 text-3xl font-bold ${color}`}>
+          <h2 className={`section-title mt-3 text-3xl ${color}`}>
             {title}
           </h2>
 
-          <p className="mt-4 max-w-xl leading-7 text-slate-300">
+          <p className="section-subtitle mt-4 max-w-xl leading-7">
             {subtitle}
           </p>
 
@@ -67,22 +67,23 @@ export default function StatusCard() {
       </div>
 
       {requestStatus === "assigned" && (
-        <div className="mt-8 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-5">
+
+        <div className="card-glass mt-8 rounded-2xl p-5">
 
           <div className="flex items-center gap-3">
 
             <CheckCircle2
               size={24}
-              className="text-emerald-300"
+              className="text-success"
             />
 
             <div>
 
-              <h3 className="font-semibold text-white">
+              <h3 className="section-title text-lg">
                 Help is on the way
               </h3>
 
-              <p className="mt-1 text-slate-300">
+              <p className="section-subtitle mt-1">
                 Estimated arrival: 10–15 minutes
               </p>
 
@@ -91,6 +92,7 @@ export default function StatusCard() {
           </div>
 
         </div>
+
       )}
 
     </section>

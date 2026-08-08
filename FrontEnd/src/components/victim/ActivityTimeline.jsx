@@ -47,13 +47,13 @@ export default function ActivityTimeline() {
   }
 
   return (
-    <section className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
+    <section className="card-glass mt-8 rounded-3xl p-8">
 
-      <p className="text-sm font-semibold uppercase tracking-[0.25em] text-sky-300">
+      <p className="section-label text-sm">
         Live Activity
       </p>
 
-      <h2 className="mt-3 text-3xl font-bold">
+      <h2 className="section-title mt-3 text-3xl">
         Request Timeline
       </h2>
 
@@ -72,34 +72,34 @@ export default function ActivityTimeline() {
 
                 <LoaderCircle
                   size={22}
-                  className="animate-spin text-yellow-300"
+                  className="animate-spin text-warning"
                 />
 
               ) : event.current ? (
 
                 <Clock3
                   size={22}
-                  className="text-sky-300"
+                  className="text-brand"
                 />
 
               ) : (
 
                 <CheckCircle2
                   size={22}
-                  className="text-emerald-300"
+                  className="text-success"
                 />
 
               )}
 
               {index !== events.length - 1 && (
-                <div className="mt-2 h-10 w-px bg-white/20"></div>
+                <div className="mt-2 h-10 w-px border-glass"></div>
               )}
 
             </div>
 
             <div>
 
-              <p className="font-semibold text-white">
+              <p className="section-title text-lg">
                 {event.title}
               </p>
 
