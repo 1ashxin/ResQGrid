@@ -18,7 +18,7 @@ export default function Hero() {
             Intelligent Disaster Relief Coordination
           </div>
 
-          <h1 className="mt-8 text-5xl font-extrabold leading-tight text-white lg:text-7xl">
+          <h1 className="mt-8 text-6xl lg:text-7xl font-extrabold leading-tight text-white lg:text-7xl">
             From{" "}
             <span className="text-sky-300">Chaos</span>
             <br />

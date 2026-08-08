@@ -1,26 +1,22 @@
 import { Routes, Route } from "react-router-dom";
 
-import LandingPage from "../pages/LandingPage";
-import VictimDashboard from "../pages/Victim/VictimDashboard";
 import SOSRequest from "../pages/Victim/SOSRequest";
+import Login from "../pages/Auth/Login";
+import NotFound from "../pages/NotFound";
 import VolunteerDashboard from "../pages/Volunteer/VolunteerDashboard";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 
-function AppRoutes() {
+export default function AppRoutes() {
   return (
     <Routes>
-      <Route
-        path="/"
-        element={<LandingPage />}
-      />
+      <Route path="/" element={<SOSRequest />} />
+
+      <Route path="/login" element={<Login />} />
+
+      <Route path="/request" element={<SOSRequest />} />
 
       <Route
         path="/victim"
-        element={<VictimDashboard />}
-      />
-
-      <Route
-        path="/victim/request"
         element={<SOSRequest />}
       />
 
@@ -34,8 +30,8 @@ function AppRoutes() {
         path="/admin"
         element={<AdminDashboard />}
       />
+
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
-
-export default AppRoutes;

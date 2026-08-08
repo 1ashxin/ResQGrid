@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import {
   LayoutDashboard,
   Siren,
@@ -28,6 +30,26 @@ function AdminDashboard() {
   const [activePage, setActivePage] = useState("Dashboard");
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { isAdminLoggedIn, logout } = useAuth();
+  const navigate = useNavigate();
+
+  if (!isAdminLoggedIn) {
+    return <Navigate to="/login" replace />;
+  }
+
+function handleLogout() {
+  logout();
+  navigate("/");
+}
+
+  if (!isAdminLoggedIn) {
+    return <Navigate to="/login" replace />;
+  }
+
+  function handleLogout() {
+    logout();
+    navigate("/");
+  }
 
   const navItems = [
     {
@@ -377,6 +399,13 @@ function AdminDashboard() {
                 </div>
               </div>
 
+          {/* Logout */}
+          <button
+             onClick={handleLogout}
+             className="rounded-xl bg-red-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-600"
+          >
+             Logout
+          </button>
             </div>
 
           </header>
