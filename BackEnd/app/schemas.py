@@ -100,6 +100,12 @@ class VolunteerProfileOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class VolunteerWithDistanceOut(VolunteerProfileOut):
+    """Same as VolunteerProfileOut, plus how far this volunteer is from the
+    point that was searched around (see GET /sos/{sos_id}/nearest-volunteers)."""
+    distance_km: float
+
+
 # ---------- SOS request schemas ----------
 
 class SOSRequestCreate(BaseModel):
@@ -167,3 +173,9 @@ class ShelterOut(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ShelterWithDistanceOut(ShelterOut):
+    """Same as ShelterOut, plus how far this shelter is from the point that
+    was searched around (see GET /shelters/nearby)."""
+    distance_km: float

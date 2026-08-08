@@ -265,6 +265,40 @@ role `volunteer` — not a volunteer *profile* ID.
 
 ---
 
+### `GET /sos/{sos_id}/nearest-volunteers`
+Returns available volunteers ranked **closest-first** to this SOS
+request's location — use this to decide who to pass to `/assign` above.
+
+**Query parameters (optional):**
+- `limit` — max volunteers to return (default `5`).
+
+**Returns (200 OK):** an array of volunteer profile objects (same shape
+as [Volunteers](#volunteers) below), each with an extra `distance_km`
+field:
+```json
+[
+  {
+    "id": "b3f1...profile-id",
+    "user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "full_name": "Rahul Verma",
+    "phone": "+91-9123456780",
+    "skills": "First aid, boat driving",
+    "is_available": true,
+    "current_lat": 19.08,
+    "current_lng": 72.88,
+    "created_at": "2026-08-08T10:25:00",
+    "distance_km": 0.51
+  }
+]
+```
+Only volunteers with `is_available: true` and a known location are
+considered. `distance_km` is straight-line distance, rounded to 2
+decimals.
+
+**Errors:** `404` if the SOS request ID doesn't exist.
+
+---
+
 ## Volunteers
 
 Volunteer-specific profile info (name, phone, skills, live location,
@@ -401,6 +435,42 @@ List every shelter (including deactivated ones — check the `is_active`
 field on each to filter client-side if you only want open shelters).
 
 **Returns (200 OK):** an array of shelter objects shown above.
+
+---
+
+### `GET /shelters/nearby`
+Returns **active** shelters within a radius of a given point, closest
+first — e.g. "which shelters are near this SOS ping."
+
+**Query parameters:**
+- `lat`, `lng` — required, the point to search around.
+- `radius_km` — optional, defaults to `10`.
+- `limit` — optional, max results, defaults to `10`.
+
+Example: `/shelters/nearby?lat=19.076&lng=72.8777&radius_km=5`
+
+**Returns (200 OK):** an array of shelter objects (same shape as above),
+each with an extra `distance_km` field:
+```json
+[
+  {
+    "id": "c2d4...shelter-id",
+    "name": "Community Hall - Sector 12",
+    "address": "Sector 12 Main Road",
+    "location_lat": 19.081,
+    "location_lng": 72.881,
+    "capacity_total": 100,
+    "capacity_occupied": 0,
+    "is_active": true,
+    "managed_by_user_id": null,
+    "created_at": "2026-08-08T10:30:00",
+    "updated_at": "2026-08-08T10:30:00",
+    "distance_km": 0.66
+  }
+]
+```
+`distance_km` is straight-line distance, rounded to 2 decimals. Shelters
+outside `radius_km` are excluded entirely, not just sorted last.
 
 ---
 

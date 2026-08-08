@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
+from ..geo import haversine_km
 
 router = APIRouter(prefix="/sos", tags=["SOS Requests"])
 
@@ -91,6 +92,49 @@ def update_priority_score(sos_id: str, payload: schemas.SOSPriorityUpdate, db: S
     db.commit()
     db.refresh(sos)
     return sos
+
+
+@router.get("/{sos_id}/nearest-volunteers", response_model=list[schemas.VolunteerWithDistanceOut])
+def nearest_volunteers(sos_id: str, limit: int = 5, db: Session = Depends(get_db)):
+    """
+    Returns available volunteers ranked closest-first to this SOS request's
+    location, so an admin/dispatcher can pick who to assign.
+
+    MEMBER 4 HOOK: this ranks every available volunteer in Python using
+    plain lat/lng math (see geo.haversine_km). Once PostGIS is enabled,
+    this should become a single ST_Distance/ST_DWithin query against a
+    geography(Point) column instead, which scales far better with a large
+    volunteer roster -- the response shape (distance_km per volunteer)
+    should stay the same.
+    """
+    sos = db.query(models.SOSRequest).filter(models.SOSRequest.id == sos_id).first()
+    if not sos:
+        raise HTTPException(status_code=404, detail="SOS request not found")
+
+    candidates = (
+        db.query(models.VolunteerProfile)
+        .filter(
+            models.VolunteerProfile.is_available == True,
+            models.VolunteerProfile.current_lat.isnot(None),
+            models.VolunteerProfile.current_lng.isnot(None),
+        )
+        .all()
+    )
+
+    ranked = sorted(
+        candidates,
+        key=lambda v: haversine_km(sos.location_lat, sos.location_lng, v.current_lat, v.current_lng),
+    )[:limit]
+
+    return [
+        schemas.VolunteerWithDistanceOut(
+            **schemas.VolunteerProfileOut.model_validate(v).model_dump(),
+            distance_km=round(
+                haversine_km(sos.location_lat, sos.location_lng, v.current_lat, v.current_lng), 2
+            ),
+        )
+        for v in ranked
+    ]
 
 
 @router.patch("/{sos_id}/assign", response_model=schemas.SOSRequestOut)

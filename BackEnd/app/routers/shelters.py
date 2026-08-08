@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
+from ..geo import haversine_km
 
 router = APIRouter(prefix="/shelters", tags=["Shelters"])
 
@@ -36,6 +37,41 @@ def create_shelter(payload: schemas.ShelterCreate, db: Session = Depends(get_db)
 def list_shelters(db: Session = Depends(get_db)):
     """Returns every shelter. Used by the map/dashboard to show capacity."""
     return db.query(models.Shelter).all()
+
+
+@router.get("/nearby", response_model=list[schemas.ShelterWithDistanceOut])
+def nearby_shelters(lat: float, lng: float, radius_km: float = 10, limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Returns active shelters within radius_km of the given point, closest
+    first. e.g. GET /shelters/nearby?lat=19.076&lng=72.8777&radius_km=5 --
+    used to suggest where to route a victim/volunteer near a given SOS.
+
+    MEMBER 4 HOOK: this filters/ranks every active shelter in Python using
+    plain lat/lng math (see geo.haversine_km). Once PostGIS is enabled,
+    this should become a single ST_DWithin query against a
+    geography(Point) column with a GIST index instead, which scales far
+    better with a large number of shelters -- the response shape
+    (distance_km per shelter) should stay the same.
+
+    NOTE: this route must stay registered before GET /{shelter_id} below,
+    otherwise FastAPI would try to treat "nearby" as a shelter_id.
+    """
+    active_shelters = db.query(models.Shelter).filter(models.Shelter.is_active == True).all()
+
+    within_radius = [
+        (shelter, haversine_km(lat, lng, shelter.location_lat, shelter.location_lng))
+        for shelter in active_shelters
+    ]
+    within_radius = [pair for pair in within_radius if pair[1] <= radius_km]
+    within_radius.sort(key=lambda pair: pair[1])
+
+    return [
+        schemas.ShelterWithDistanceOut(
+            **schemas.ShelterOut.model_validate(shelter).model_dump(),
+            distance_km=round(distance, 2),
+        )
+        for shelter, distance in within_radius[:limit]
+    ]
 
 
 @router.get("/{shelter_id}", response_model=schemas.ShelterOut)
