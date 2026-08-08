@@ -1,4 +1,4 @@
-# ResQGrid Backend (Member 3)
+# ResQGrid Backend
 
 This is the FastAPI + PostgreSQL backend for ResQGrid. If you've never built
 a backend before, read "Concepts in Plain English" below before running any
@@ -38,26 +38,6 @@ stores everything long-term.
 - **PostGIS** -- a PostgreSQL extension for geographic/location queries
   (e.g. "find every volunteer within 5 km"). Not wired up yet -- look for
   the `MEMBER 4 HOOK` comments in `schema.sql`.
-
-## Folder structure
-
-```
-BackEnd/
-  app/
-    main.py            <- starts the server, plugs in all the routers
-    database.py        <- connects to PostgreSQL
-    security.py         <- password hashing + Fernet encryption
-    models.py            <- database table definitions (SQLAlchemy)
-    schemas.py             <- API request/response shapes (Pydantic)
-    routers/
-      users.py              <- register / login / role management endpoints
-      sos.py                  <- victim SOS request endpoints
-      volunteers.py             <- volunteer profile endpoints
-      shelters.py                <- shelter capacity endpoints
-  schema.sql              <- hand-written SQL schema (PostGIS hooks for Member 4)
-  requirements.txt        <- list of Python libraries this project needs
-  .env.example             <- template for your local secrets file
-```
 
 ## One-time setup
 
