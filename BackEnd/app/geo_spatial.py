@@ -1,22 +1,24 @@
 from typing import List, Dict, Any, Optional
+from sqlalchemy.orm import Session
+from sqlalchemy import text
 
-async def update_volunteer_location(
-    db_pool, 
+def update_volunteer_location(
+    db: Session, 
     user_id: str, 
     latitude: float, 
     longitude: float
 ) -> Optional[Dict[str, Any]]:
     """
     Updates dynamic location for a volunteer in volunteer_profiles.
-    Keeps current_lat/current_lng and PostGIS current_location in sync.
+    Keeps current_lat/current_lng and PostGIS current_location in sync using SQLAlchemy.
     """
-    query = """
+    query = text("""
         UPDATE volunteer_profiles
         SET 
-            current_lat = $1,
-            current_lng = $2,
-            current_location = ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography
-        WHERE user_id = $3
+            current_lat = :lat,
+            current_lng = :lng,
+            current_location = ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+        WHERE user_id = :user_id
         RETURNING 
             id, 
             user_id, 
@@ -25,21 +27,25 @@ async def update_volunteer_location(
             is_available, 
             current_lat AS latitude, 
             current_lng AS longitude;
-    """
-    row = await db_pool.fetchrow(query, latitude, longitude, user_id)
-    return dict(row) if row else None
+    """)
+    
+    result = db.execute(query, {"lat": latitude, "lng": longitude, "user_id": user_id})
+    row = result.fetchone()
+    db.commit()
+    
+    return dict(row._mapping) if row else None
 
 
-async def find_nearest_volunteers_to_sos(
-    db_pool, 
+def find_nearest_volunteers_to_sos(
+    db: Session, 
     sos_id: str, 
     limit: int = 5, 
     max_radius_meters: int = 10000
 ) -> List[Dict[str, Any]]:
     """
-    Finds nearest available volunteers to a specific SOS request ID using PostGIS.
+    Finds nearest available volunteers to an SOS request using PostGIS with SQLAlchemy.
     """
-    query = """
+    query = text("""
         SELECT 
             vp.id AS profile_id,
             vp.user_id,
@@ -52,44 +58,15 @@ async def find_nearest_volunteers_to_sos(
             ROUND((ST_Distance(vp.current_location, s.location) / 1000.0)::numeric, 2) AS distance_km
         FROM volunteer_profiles vp
         CROSS JOIN sos_requests s
-        WHERE s.id = $1
+        WHERE s.id = :sos_id
           AND vp.is_available = TRUE
           AND vp.current_location IS NOT NULL
-          AND ST_DWithin(vp.current_location, s.location, $2)
+          AND ST_DWithin(vp.current_location, s.location, :max_radius)
         ORDER BY distance_meters ASC
-        LIMIT $3;
-    """
-    rows = await db_pool.fetch(query, sos_id, max_radius_meters, limit)
-    return [dict(r) for r in rows]
-
-
-async def find_nearest_volunteers_by_coords(
-    db_pool, 
-    latitude: float, 
-    longitude: float, 
-    limit: int = 5, 
-    max_radius_meters: int = 10000
-) -> List[Dict[str, Any]]:
-    """
-    Finds nearest available volunteers given raw coordinates.
-    """
-    query = """
-        SELECT 
-            vp.id AS profile_id,
-            vp.user_id,
-            vp.full_name,
-            vp.phone,
-            vp.skills,
-            vp.current_lat AS latitude,
-            vp.current_lng AS longitude,
-            ROUND(ST_Distance(vp.current_location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography)::numeric, 2) AS distance_meters,
-            ROUND((ST_Distance(vp.current_location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) / 1000.0)::numeric, 2) AS distance_km
-        FROM volunteer_profiles vp
-        WHERE vp.is_available = TRUE
-          AND vp.current_location IS NOT NULL
-          AND ST_DWithin(vp.current_location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, $3)
-        ORDER BY distance_meters ASC
-        LIMIT $4;
-    """
-    rows = await db_pool.fetch(query, longitude, latitude, max_radius_meters, limit)
-    return [dict(r) for r in rows]
+        LIMIT :limit;
+    """)
+    
+    result = db.execute(query, {"sos_id": sos_id, "max_radius": max_radius_meters, "limit": limit})
+    rows = result.fetchall()
+    
+    return [dict(r._mapping) for r in rows]
