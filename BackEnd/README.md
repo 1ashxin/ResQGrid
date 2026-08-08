@@ -100,27 +100,6 @@ uvicorn app.main:app --reload
 - Once running, open **http://127.0.0.1:8000/docs** in a browser. FastAPI
   automatically builds an interactive page there where you can try every
   endpoint by clicking buttons -- no extra tools needed to test the API.
-
-## Troubleshooting
-
-- **"FERNET_KEY is missing"** -- you skipped step 5 above, or `.env` isn't
-  being found. Make sure `.env` (not `.env.example`) exists in this folder.
-- **A warning mentioning `bcrypt` and `__about__`** -- a harmless, known
-  compatibility warning between the `passlib` and `bcrypt` libraries. It
-  does not affect password hashing; safe to ignore.
-- **"could not connect to server"** -- PostgreSQL isn't running, or your
-  `DATABASE_URL` in `.env` has the wrong username/password/port.
-
-## Notes for the team
-
-- `schema.sql` is the official, reviewable database blueprint. `app/models.py`
-  can also auto-create matching tables for local development convenience
-  (this happens automatically every time you start the server) -- but
-  `schema.sql` is what should be run against shared/staging databases,
-  especially once Member 4 adds PostGIS columns to it.
-- Look for `MEMBER 4 HOOK` comments in `schema.sql` and
-  `app/routers/volunteers.py` -- those mark exactly where spatial (PostGIS)
-  columns and queries should be plugged in.
 - Login currently checks email/password but does not yet issue an auth
   token (e.g. JWT), and no endpoint is locked down by role yet. This is
   intentionally out of scope for Aug 6/7 (basic CRUD + schema) and is
