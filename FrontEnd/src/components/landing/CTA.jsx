@@ -1,26 +1,49 @@
+import { ArrowRight, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function CTA() {
   return (
-    <section className="py-24 px-6">
+    <section className="relative overflow-hidden px-6 py-28 lg:px-12">
 
-      <div className="max-w-6xl mx-auto bg-gradient-to-r from-red-600 to-orange-500 rounded-3xl p-14 text-center">
+      {/* Background Glow */}
 
-        <h2 className="text-5xl font-bold text-white">
-          Need Help Right Now?
-        </h2>
+      <div className="absolute left-1/2 top-1/2 h-[450px] w-[450px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-400/10 blur-[120px]" />
 
-        <p className="text-red-100 text-lg mt-6 mb-10">
-          Every second matters during a disaster.
-          Connect with nearby volunteers instantly.
+      <div className="relative mx-auto max-w-6xl rounded-[36px] border border-white/10 bg-white/5 p-12 text-center backdrop-blur-xl">
+
+        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.35em] text-sky-300">
+          Get Started
         </p>
 
-        <Link
-          to="/victim"
-          className="bg-white text-red-600 font-bold px-8 py-4 rounded-xl hover:scale-105 transition inline-block"
-        >
-          Request Emergency Help
-        </Link>
+        <h2 className="mx-auto max-w-4xl text-4xl font-bold leading-tight text-white md:text-6xl">
+          Ready to Make a Difference When Every Second Counts?
+        </h2>
+
+        <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-slate-300">
+          Whether you're seeking urgent assistance or volunteering to help
+          your community, ResQGrid brings everyone together through one
+          coordinated emergency response platform.
+        </p>
+
+        <div className="mt-12 flex flex-wrap justify-center gap-6">
+
+          <Link
+            to="/victim"
+            className="flex items-center gap-2 rounded-2xl bg-[#FF6B6B] px-8 py-4 font-semibold transition duration-300 hover:scale-105 hover:bg-[#ff7b7b]"
+          >
+            Request Assistance
+            <ArrowRight size={18} />
+          </Link>
+
+          <Link
+            to="/volunteer"
+            className="flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-8 py-4 font-semibold backdrop-blur-sm transition duration-300 hover:bg-white/10"
+          >
+            Join as a Volunteer
+            <Users size={18} />
+          </Link>
+
+        </div>
 
       </div>
 

@@ -1,0 +1,11 @@
+# Local secrets -- never commit this. Copy .env.example to .env instead.
+.env
+
+# Python virtual environment (already has its own internal .gitignore too,
+# but this covers venvs created without one, e.g. on a teammate's machine).
+venv/
+.venv/
+
+# Compiled Python bytecode -- regenerated automatically, no need to track.
+__pycache__/
+*.pyc

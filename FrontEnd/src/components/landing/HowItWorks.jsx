@@ -1,71 +1,113 @@
+import {
+  Siren,
+  BrainCircuit,
+  Users,
+  ShieldCheck,
+  ArrowRight,
+} from "lucide-react";
+
 const steps = [
   {
-    number: "01",
-    title: "Request Help",
+    icon: Siren,
+    title: "Report Emergency",
     description:
-      "Victims submit emergency requests with their location and required assistance."
+      "Victims quickly submit an SOS with their location, emergency type, and immediate requirements.",
+    color: "text-red-300",
   },
   {
-    number: "02",
+    icon: BrainCircuit,
+    title: "AI Prioritizes",
+    description:
+      "ResQGrid intelligently prioritizes requests based on urgency, severity, and available resources.",
+    color: "text-sky-300",
+  },
+  {
+    icon: Users,
     title: "Volunteers Respond",
     description:
-      "Nearby verified volunteers instantly receive notifications and accept requests."
+      "Nearby volunteers receive notifications and accept tasks based on their availability and proximity.",
+    color: "text-emerald-300",
   },
   {
-    number: "03",
-    title: "Relief Delivered",
+    icon: ShieldCheck,
+    title: "Relief Coordinated",
     description:
-      "Food, medical aid and shelter support are coordinated in real time."
-  }
+      "NGOs and emergency authorities coordinate relief while victims receive live updates throughout the response.",
+    color: "text-yellow-300",
+  },
 ];
 
 export default function HowItWorks() {
   return (
-    <section className="py-24 px-6">
+    <section
+      id="how-it-works"
+      className="px-6 py-28 lg:px-12"
+    >
+      <div className="mx-auto max-w-7xl">
 
-      <div className="max-w-7xl mx-auto">
+        {/* Section Header */}
+        <div className="text-center">
 
-        <div className="text-center mb-16">
+          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.3em] text-sky-300">
+            Our Response Process
+          </p>
 
-          <h2 className="text-4xl font-bold text-white">
-            How ResQGrid Works
+          <h2 className="text-4xl font-bold text-white md:text-5xl">
+            How ResQGrid Responds
           </h2>
 
-          <p className="text-slate-400 mt-4">
-            Three simple steps during an emergency.
+          <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+            Every emergency follows a structured workflow that enables
+            victims, volunteers and emergency responders to work together
+            efficiently from the first alert to the final relief effort.
           </p>
 
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        {/* Workflow */}
+        <div className="mt-20 grid gap-10 lg:grid-cols-4">
 
-          {steps.map((step) => (
+          {steps.map((step, index) => {
+            const Icon = step.icon;
 
-            <div
-              key={step.number}
-              className="bg-slate-900 border border-slate-700 rounded-3xl p-8 hover:border-red-500 transition"
-            >
+            return (
+              <div
+                key={step.title}
+                className="relative"
+              >
+                <div className="h-full rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 hover:border-sky-300/30 hover:bg-white/10">
 
-              <p className="text-red-500 text-5xl font-bold">
-                {step.number}
-              </p>
+                  <div
+                    className={`mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 ${step.color}`}
+                  >
+                    <Icon size={30} />
+                  </div>
 
-              <h3 className="text-2xl text-white font-bold mt-6">
-                {step.title}
-              </h3>
+                  <h3 className="mb-4 text-2xl font-semibold text-white">
+                    {step.title}
+                  </h3>
 
-              <p className="text-slate-400 mt-5 leading-7">
-                {step.description}
-              </p>
+                  <p className="leading-7 text-slate-300">
+                    {step.description}
+                  </p>
 
-            </div>
+                </div>
 
-          ))}
+                {/* Connector */}
+                {index !== steps.length - 1 && (
+                  <div className="absolute -right-8 top-1/2 hidden -translate-y-1/2 lg:flex">
+                    <ArrowRight
+                      size={28}
+                      className="text-sky-300"
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
         </div>
-
       </div>
-
     </section>
   );
 }
