@@ -40,11 +40,8 @@ export default function VolunteerDashboard() {
 
       <VolunteerStats />
 
-      <div className="mt-10">
-        <ResponseMap />
-      </div>
-
-      <section className="mt-12">
+      {/* Incoming Requests */}
+      <section className="mt-10">
 
         <div className="mb-8">
 
@@ -196,6 +193,11 @@ export default function VolunteerDashboard() {
         )}
 
       </section>
+
+      {/* Live Response Map */}
+      <div className="mt-12">
+        <ResponseMap />
+      </div>
 
     </DashboardLayout>
   );
