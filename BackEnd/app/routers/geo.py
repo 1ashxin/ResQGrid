@@ -41,7 +41,7 @@ def update_volunteer_location(
 
 @router.get("/sos/{sos_id}/nearest-volunteers")
 def nearest_volunteers_postgis(
-    sos_id: str, limit: int = 5, max_radius_meters: int = 10000, db: Session = Depends(get_db)
+    sos_id: str, limit: int = 5, radius_meters: int = 10000, db: Session = Depends(get_db)
 ):
     """
     PostGIS-backed alternative to GET /sos/{sos_id}/nearest-volunteers (the
@@ -49,4 +49,4 @@ def nearest_volunteers_postgis(
     index instead of ranking every volunteer in Python -- faster once
     PostGIS is fully set up, same idea either way.
     """
-    return geo_spatial.find_nearest_volunteers_to_sos(db, sos_id, limit, max_radius_meters)
+    return geo_spatial.find_nearest_volunteers_to_sos(db, sos_id, limit, radius_meters)

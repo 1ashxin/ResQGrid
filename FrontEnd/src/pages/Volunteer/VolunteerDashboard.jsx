@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
 import DashboardLayout from "../../layouts/DashboardLayout";
 
 import VolunteerHeader from "../../components/volunteer/VolunteerHeader";
@@ -13,16 +14,23 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
+import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../../context/NotificationContext";
-import { listSOSRequests, updateSOSStatus } from "../../api/client";
+import { listSOSRequests, assignVolunteer } from "../../api/client";
+import { updateVolunteerLocation } from "../../services/api";
 import { transformSOSRequest } from "../../utils/sos";
 
 export default function VolunteerDashboard() {
+  const { user } = useAuth();
   const { showToast } = useNotification();
   const [requests, setRequests] = useState([]);
   const [acceptingId, setAcceptingId] = useState(null);
 
+  const isVolunteer = !!user && user.role === "volunteer";
+
   useEffect(() => {
+    if (!isVolunteer) return;
+
     let cancelled = false;
 
     async function loadPendingRequests(isInitialLoad) {
@@ -47,17 +55,43 @@ export default function VolunteerDashboard() {
       clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isVolunteer]);
 
-  // There's no volunteer login/identity system in the frontend yet, so we
-  // can't call the real /sos/{id}/assign endpoint (it needs a specific
-  // volunteer's user_id). This still does a real, meaningful state change
-  // -- pending -> in_progress -- visible to the admin dashboard too; full
-  // per-volunteer assignment needs volunteer auth built first.
+  // Pushes this volunteer's live GPS location to the PostGIS-backed
+  // endpoint (services/api.js) every 20s, so "nearest volunteer" queries
+  // have fresh data to work with once PostGIS is fully set up. This fails
+  // silently for now -- the current_location column it writes to doesn't
+  // exist in schema.sql yet (Member 4's setup, still in progress), so
+  // every call 500s until that lands. No point alarming the volunteer
+  // with an error toast for something outside their control.
+  useEffect(() => {
+    if (!isVolunteer || !navigator.geolocation) return;
+
+    function pushLocation() {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          updateVolunteerLocation(user.id, pos.coords.latitude, pos.coords.longitude).catch(() => {
+            console.warn("PostGIS location sync not available yet (needs Member 4's schema setup)");
+          });
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    }
+
+    pushLocation();
+    const interval = setInterval(pushLocation, 20000);
+    return () => clearInterval(interval);
+  }, [isVolunteer, user?.id]);
+
+  if (!isVolunteer) {
+    return <Navigate to="/login" replace />;
+  }
+
   async function handleAccept(requestId) {
     setAcceptingId(requestId);
     try {
-      await updateSOSStatus(requestId, "in_progress");
+      await assignVolunteer(requestId, user.id);
       setRequests((prev) => prev.filter((r) => r.id !== requestId));
       showToast("You have accepted the emergency request.", "success");
     } catch {

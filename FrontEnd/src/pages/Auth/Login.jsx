@@ -21,7 +21,7 @@ export default function Login() {
     try {
       const user = await loginUser({ email, password });
       login(user);
-      navigate("/admin");
+      navigate(user.role === "volunteer" ? "/volunteer" : "/admin");
     } catch (err) {
       if (err.response?.status === 401) {
         setError("Invalid email or password.");
@@ -122,8 +122,8 @@ export default function Login() {
 
           <p className="mt-2">
             Register one via <code>POST /users/register</code> at the
-            backend's <code>/docs</code> page with role "admin" or "ngo",
-            then sign in here with that email/password.
+            backend's <code>/docs</code> page with role "admin", "ngo", or
+            "volunteer", then sign in here with that email/password.
           </p>
 
         </div>

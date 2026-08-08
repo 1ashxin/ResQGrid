@@ -1,16 +1,18 @@
 const API_BASE_URL = "http://localhost:8000";
 
-// Update volunteer location in real-time via PostGIS backend endpoint
+// Update volunteer location in real-time via PostGIS backend endpoint.
+// Endpoint is keyed by user_id in the URL (not the body) and uses PATCH,
+// matching BackEnd/app/routers/geo.py -- fixed here to match what the
+// backend actually exposes.
 export const updateVolunteerLocation = async (userId, latitude, longitude) => {
-  const response = await fetch(`${API_BASE_URL}/geo/volunteer/location`, {
-    method: "POST",
+  const response = await fetch(`${API_BASE_URL}/geo/volunteers/${userId}/location`, {
+    method: "PATCH",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      user_id: userId,
-      latitude: parseFloat(latitude),
-      longitude: parseFloat(longitude),
+      current_lat: parseFloat(latitude),
+      current_lng: parseFloat(longitude),
     }),
   });
 
