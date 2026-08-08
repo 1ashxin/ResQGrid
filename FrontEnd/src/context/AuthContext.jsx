@@ -2,21 +2,38 @@ import { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+const STORAGE_KEY = "resqgrid_user";
 
-  function login() {
-    setIsAdminLoggedIn(true);
+function loadStoredUser() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(loadStoredUser);
+
+  // login() takes the UserOut object returned by POST /users/login
+  // (id, email, role, created_at), so the whole app knows who's signed in
+  // and what role they have, not just a yes/no flag.
+  function login(userData) {
+    setUser(userData);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
   }
 
   function logout() {
-    setIsAdminLoggedIn(false);
+    setUser(null);
+    localStorage.removeItem(STORAGE_KEY);
   }
 
   return (
     <AuthContext.Provider
       value={{
-        isAdminLoggedIn,
+        user,
+        isAdminLoggedIn: user?.role === "admin",
         login,
         logout,
       }}

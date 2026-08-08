@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 
 import VolunteerHeader from "../../components/volunteer/VolunteerHeader";
@@ -12,25 +13,58 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-import { useRequest } from "../../context/RequestContext";
 import { useNotification } from "../../context/NotificationContext";
+import { listSOSRequests, updateSOSStatus } from "../../api/client";
+import { transformSOSRequest } from "../../utils/sos";
 
 export default function VolunteerDashboard() {
-  const {
-    requestStatus,
-    requestData,
-    setRequestStatus,
-  } = useRequest();
-
   const { showToast } = useNotification();
+  const [requests, setRequests] = useState([]);
+  const [acceptingId, setAcceptingId] = useState(null);
 
-  function handleAccept() {
-    setRequestStatus("assigned");
+  useEffect(() => {
+    let cancelled = false;
 
-    showToast(
-      "You have accepted the emergency request.",
-      "success"
-    );
+    async function loadPendingRequests(isInitialLoad) {
+      try {
+        const rawSOS = await listSOSRequests();
+        if (cancelled) return;
+        const pending = rawSOS
+          .map(transformSOSRequest)
+          .filter((sos) => sos.rawStatus === "pending");
+        setRequests(pending);
+      } catch {
+        if (!cancelled && isInitialLoad) {
+          showToast("Couldn't load requests from the backend. Is it running?", "error");
+        }
+      }
+    }
+
+    loadPendingRequests(true);
+    const interval = setInterval(() => loadPendingRequests(false), 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // There's no volunteer login/identity system in the frontend yet, so we
+  // can't call the real /sos/{id}/assign endpoint (it needs a specific
+  // volunteer's user_id). This still does a real, meaningful state change
+  // -- pending -> in_progress -- visible to the admin dashboard too; full
+  // per-volunteer assignment needs volunteer auth built first.
+  async function handleAccept(requestId) {
+    setAcceptingId(requestId);
+    try {
+      await updateSOSStatus(requestId, "in_progress");
+      setRequests((prev) => prev.filter((r) => r.id !== requestId));
+      showToast("You have accepted the emergency request.", "success");
+    } catch {
+      showToast("Couldn't accept the request. Please try again.", "error");
+    } finally {
+      setAcceptingId(null);
+    }
   }
 
   return (
@@ -58,7 +92,7 @@ export default function VolunteerDashboard() {
 
         </div>
 
-        {requestStatus === "idle" && (
+        {requests.length === 0 && (
 
           <div className="rounded-3xl border border-white/10 bg-white/5 p-12 text-center backdrop-blur-xl">
 
@@ -79,121 +113,88 @@ export default function VolunteerDashboard() {
 
         )}
 
-        {requestStatus !== "idle" && requestData && (
+        <div className="space-y-8">
 
-          <div className="rounded-3xl border border-red-400/20 bg-white/5 p-8 backdrop-blur-xl">
+          {requests.map((requestData) => (
 
-            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+            <div
+              key={requestData.id}
+              className="rounded-3xl border border-red-400/20 bg-white/5 p-8 backdrop-blur-xl"
+            >
 
-              <div className="flex items-center gap-5">
+              <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
 
-                <div className="rounded-3xl bg-red-500/15 p-5">
+                <div className="flex items-center gap-5">
 
-                  <Flame
-                    size={36}
-                    className="text-red-300"
-                  />
+                  <div className="rounded-3xl bg-red-500/15 p-5">
+
+                    <Flame
+                      size={36}
+                      className="text-red-300"
+                    />
+
+                  </div>
+
+                  <div>
+
+                    <h2 className="text-3xl font-bold">
+                      {requestData.request}
+                    </h2>
+
+                    <p className="mt-2 text-slate-300">
+                      {requestData.time}
+                    </p>
+
+                  </div>
 
                 </div>
 
-                <div>
-
-                  <h2 className="text-3xl font-bold">
-                    {requestData.emergency}
-                  </h2>
-
-                  <p className="mt-2 text-slate-300">
-                    High Priority Emergency
-                  </p>
-
+                <div className="rounded-full bg-red-500/20 px-5 py-2 font-semibold text-red-300">
+                  {requestData.priority}
                 </div>
 
               </div>
 
-              <div className="rounded-full bg-red-500/20 px-5 py-2 font-semibold text-red-300">
-                HIGH
-              </div>
+              <div className="mt-10 grid gap-6 md:grid-cols-2">
 
-            </div>
-
-            <div className="mt-10 grid gap-6 md:grid-cols-2">
-
-              <InfoCard
-                icon={<Users className="text-sky-300" />}
-                title="People Requiring Help"
-                value={requestData.people || "1"}
-              />
-
-              <InfoCard
-                icon={<MapPin className="text-red-300" />}
-                title="Location"
-                value={requestData.location}
-              />
-
-              <InfoCard
-                icon={<Phone className="text-emerald-300" />}
-                title="Contact Number"
-                value={requestData.phone}
-              />
-
-              <InfoCard
-                title="Victim Name"
-                value={requestData.name}
-              />
-
-            </div>
-
-            {requestData.notes && (
-
-              <div className="mt-8 rounded-2xl bg-white/5 p-6">
-
-                <p className="text-sm text-slate-400">
-                  Situation Details
-                </p>
-
-                <p className="mt-3 leading-7 text-slate-300">
-                  {requestData.notes}
-                </p>
-
-              </div>
-
-            )}
-
-            {requestStatus === "searching" && (
-
-              <button
-                onClick={handleAccept}
-                className="mt-10 w-full rounded-2xl bg-emerald-500 py-4 text-lg font-semibold transition-all duration-300 hover:scale-[1.01] hover:bg-emerald-400"
-              >
-                Accept Request
-              </button>
-
-            )}
-
-            {requestStatus === "assigned" && (
-
-              <div className="mt-10 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-6 text-center">
-
-                <CheckCircle2
-                  size={42}
-                  className="mx-auto text-emerald-300"
+                <InfoCard
+                  icon={<Users className="text-sky-300" />}
+                  title="People Requiring Help"
+                  value={requestData.people}
                 />
 
-                <h3 className="mt-4 text-2xl font-bold">
-                  Request Accepted
-                </h3>
+                <InfoCard
+                  icon={<MapPin className="text-red-300" />}
+                  title="Location"
+                  value={requestData.location}
+                />
 
-                <p className="mt-2 text-slate-300">
-                  The victim has been notified that you're on the way.
-                </p>
+                <InfoCard
+                  icon={<Phone className="text-emerald-300" />}
+                  title="Contact Number"
+                  value={requestData.victimPhone}
+                />
+
+                <InfoCard
+                  title="Victim Name"
+                  value={requestData.victimName}
+                />
 
               </div>
 
-            )}
+              <button
+                onClick={() => handleAccept(requestData.id)}
+                disabled={acceptingId === requestData.id}
+                className="mt-10 w-full rounded-2xl bg-emerald-500 py-4 text-lg font-semibold transition-all duration-300 hover:scale-[1.01] hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {acceptingId === requestData.id ? "Accepting..." : "Accept Request"}
+              </button>
 
-          </div>
+            </div>
 
-        )}
+          ))}
+
+        </div>
 
       </section>
 

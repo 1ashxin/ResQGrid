@@ -3,6 +3,24 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useNotification } from "../../context/NotificationContext";
 import { useRequest } from "../../context/RequestContext";
+import { createSOSRequest } from "../../api/client";
+
+// Wraps the browser's geolocation API in a promise, with a short timeout --
+// SOS submission shouldn't hang forever waiting on a GPS fix that may never
+// come (e.g. permission denied, indoors, older device).
+function getCurrentPosition() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Geolocation not supported by this browser"));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (err) => reject(err),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  });
+}
 
 export default function SOSRequest() {
   const navigate = useNavigate();
@@ -23,6 +41,8 @@ export default function SOSRequest() {
     notes: "",
   });
 
+  const [submitting, setSubmitting] = useState(false);
+
   function handleChange(e) {
     setForm({
       ...form,
@@ -30,23 +50,59 @@ export default function SOSRequest() {
     });
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    setSubmitting(true);
 
-    setRequestData(form);
-    setRequestStatus("searching");
+    let coords;
+    try {
+      coords = await getCurrentPosition();
+    } catch {
+      // No GPS fix available -- fall back to (0, 0) rather than block
+      // submission entirely. The typed "location" field is still sent
+      // along in the description so responders aren't left with nothing.
+      coords = { lat: 0, lng: 0 };
+      showToast("Couldn't get your GPS location -- sending with typed location only.", "info");
+    }
 
-    showToast("Emergency request submitted successfully!", 
-              "success"
-    );
+    // The backend doesn't have dedicated columns for emergency type/people
+    // count yet, so they're folded into the free-text description.
+    const description = [
+      form.emergency && `Emergency: ${form.emergency}`,
+      form.people && `People needing help: ${form.people}`,
+      form.location && `Reported location: ${form.location}`,
+      form.notes,
+    ]
+      .filter(Boolean)
+      .join("\n");
 
-    setTimeout(() => {
-      showToast("Searching for nearby responders...",
-        "info"
+    try {
+      const sos = await createSOSRequest({
+        victim_name: form.name,
+        victim_phone: form.phone,
+        description,
+        location_lat: coords.lat,
+        location_lng: coords.lng,
+      });
+
+      setRequestData({ ...form, id: sos.id, status: sos.status });
+      setRequestStatus("searching");
+
+      showToast("Emergency request submitted successfully!", "success");
+
+      setTimeout(() => {
+        showToast("Searching for nearby responders...", "info");
+      }, 700);
+
+      navigate("/victim");
+    } catch (err) {
+      showToast(
+        err.response?.data?.detail || "Couldn't reach the server. Please try again.",
+        "error"
       );
-    }, 700);
-
-    navigate("/victim");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -160,9 +216,10 @@ export default function SOSRequest() {
 
             <button
               type="submit"
-              className="w-full rounded-2xl bg-[#FF6B6B] py-4 text-lg font-semibold transition hover:bg-[#ff7d7d]"
+              disabled={submitting}
+              className="w-full rounded-2xl bg-[#FF6B6B] py-4 text-lg font-semibold transition hover:bg-[#ff7d7d] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Submit Emergency Request
+              {submitting ? "Submitting..." : "Submit Emergency Request"}
             </button>
 
           </form>

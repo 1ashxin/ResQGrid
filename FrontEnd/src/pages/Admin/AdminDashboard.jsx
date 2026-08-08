@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useNotification } from "../../context/NotificationContext";
+import { listSOSRequests, listVolunteers, listShelters } from "../../api/client";
+import { transformSOSRequest } from "../../utils/sos";
 import {
   LayoutDashboard,
   Siren,
@@ -26,12 +29,78 @@ import {
   Menu,
 } from "lucide-react";
 
+function transformVolunteer(volunteer, sosRequests) {
+  const activeMission = sosRequests.find(
+    (sos) => sos.assignedVolunteerId === volunteer.user_id
+  );
+  return {
+    name: volunteer.full_name,
+    location:
+      volunteer.current_lat != null && volunteer.current_lng != null
+        ? `${volunteer.current_lat.toFixed(3)}, ${volunteer.current_lng.toFixed(3)}`
+        : "Unknown",
+    status: volunteer.is_available ? "Available" : "On Mission",
+    task: activeMission ? activeMission.id : "None",
+  };
+}
+
+function transformShelter(shelter) {
+  return {
+    name: shelter.name,
+    location: shelter.address || `${shelter.location_lat.toFixed(3)}, ${shelter.location_lng.toFixed(3)}`,
+    capacity: shelter.capacity_total,
+    occupied: shelter.capacity_occupied,
+    status: shelter.is_active ? "Operational" : "Closed",
+  };
+}
+
 function AdminDashboard() {
   const [activePage, setActivePage] = useState("Dashboard");
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sosRequests, setSosRequests] = useState([]);
+  const [volunteers, setVolunteers] = useState([]);
+  const [shelters, setShelters] = useState([]);
   const { isAdminLoggedIn, logout } = useAuth();
+  const { showToast } = useNotification();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAdminLoggedIn) return;
+
+    let cancelled = false;
+
+    async function loadDashboardData(isInitialLoad) {
+      try {
+        const [rawSOS, rawVolunteers, rawShelters] = await Promise.all([
+          listSOSRequests(),
+          listVolunteers(),
+          listShelters(),
+        ]);
+        if (cancelled) return;
+
+        const transformedSOS = rawSOS.map(transformSOSRequest);
+        setSosRequests(transformedSOS);
+        setVolunteers(rawVolunteers.map((v) => transformVolunteer(v, transformedSOS)));
+        setShelters(rawShelters.map(transformShelter));
+      } catch {
+        // Only surface a toast on the initial load, not on every failed
+        // background refresh -- otherwise a down backend spams a new
+        // toast every 15 seconds.
+        if (!cancelled && isInitialLoad) {
+          showToast("Couldn't load live data from the backend. Is it running?", "error");
+        }
+      }
+    }
+
+    loadDashboardData(true);
+    const interval = setInterval(() => loadDashboardData(false), 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdminLoggedIn]);
 
   if (!isAdminLoggedIn) {
     return <Navigate to="/login" replace />;
@@ -71,112 +140,6 @@ function handleLogout() {
     {
       name: "Resources",
       icon: Package,
-    },
-  ];
-
-  const sosRequests = [
-    {
-      id: "SOS-1028",
-      priority: "CRITICAL",
-      request: "Medical emergency",
-      location: "Kothrud",
-      people: 4,
-      status: "Unassigned",
-      time: "2 min ago",
-    },
-    {
-      id: "SOS-1027",
-      priority: "CRITICAL",
-      request: "Trapped person",
-      location: "Baner",
-      people: 2,
-      status: "Assigned",
-      time: "5 min ago",
-    },
-    {
-      id: "SOS-1026",
-      priority: "HIGH",
-      request: "Food & Water",
-      location: "Aundh",
-      people: 6,
-      status: "Pending",
-      time: "8 min ago",
-    },
-    {
-      id: "SOS-1025",
-      priority: "HIGH",
-      request: "Medical supplies",
-      location: "Shivajinagar",
-      people: 3,
-      status: "Assigned",
-      time: "11 min ago",
-    },
-    {
-      id: "SOS-1024",
-      priority: "MEDIUM",
-      request: "Shelter required",
-      location: "Deccan",
-      people: 5,
-      status: "Pending",
-      time: "15 min ago",
-    },
-  ];
-
-  const volunteers = [
-    {
-      name: "Rahul Sharma",
-      location: "Kothrud",
-      status: "Available",
-      task: "None",
-    },
-    {
-      name: "Priya Patil",
-      location: "Baner",
-      status: "On Mission",
-      task: "SOS-1027",
-    },
-    {
-      name: "Aditya Joshi",
-      location: "Aundh",
-      status: "Available",
-      task: "None",
-    },
-    {
-      name: "Sneha Kulkarni",
-      location: "Shivajinagar",
-      status: "On Mission",
-      task: "SOS-1025",
-    },
-  ];
-
-  const shelters = [
-    {
-      name: "Shelter A",
-      location: "Kothrud",
-      capacity: 300,
-      occupied: 214,
-      status: "Operational",
-    },
-    {
-      name: "Shelter B",
-      location: "Baner",
-      capacity: 250,
-      occupied: 218,
-      status: "Near Capacity",
-    },
-    {
-      name: "Shelter C",
-      location: "Aundh",
-      capacity: 400,
-      occupied: 247,
-      status: "Operational",
-    },
-    {
-      name: "Shelter D",
-      location: "Shivajinagar",
-      capacity: 200,
-      occupied: 96,
-      status: "Operational",
     },
   ];
 

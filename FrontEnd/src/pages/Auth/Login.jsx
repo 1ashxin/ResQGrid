@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, Lock, Mail } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { loginUser } from "../../api/client";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -10,18 +11,25 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleLogin(e) {
+  async function handleLogin(e) {
     e.preventDefault();
+    setError("");
+    setSubmitting(true);
 
-    if (
-      email === "admin@resqgrid.com" &&
-      password === "admin123"
-    ) {
-      login();
+    try {
+      const user = await loginUser({ email, password });
+      login(user);
       navigate("/admin");
-    } else {
-      setError("Invalid email or password.");
+    } catch (err) {
+      if (err.response?.status === 401) {
+        setError("Invalid email or password.");
+      } else {
+        setError("Couldn't reach the server. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -98,9 +106,10 @@ export default function Login() {
 
           <button
             type="submit"
-            className="w-full rounded-2xl bg-[#FF6B6B] py-4 font-semibold text-white transition hover:bg-[#ff8080]"
+            disabled={submitting}
+            className="w-full rounded-2xl bg-[#FF6B6B] py-4 font-semibold text-white transition hover:bg-[#ff8080] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Sign In
+            {submitting ? "Signing in..." : "Sign In"}
           </button>
 
         </form>
@@ -108,15 +117,13 @@ export default function Login() {
         <div className="mt-8 rounded-2xl bg-white/5 p-4 text-sm text-slate-300">
 
           <p className="font-semibold text-white">
-            Demo Credentials
+            No account yet?
           </p>
 
           <p className="mt-2">
-            Email: admin@resqgrid.com
-          </p>
-
-          <p>
-            Password: admin123
+            Register one via <code>POST /users/register</code> at the
+            backend's <code>/docs</code> page with role "admin" or "ngo",
+            then sign in here with that email/password.
           </p>
 
         </div>
