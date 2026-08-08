@@ -4,6 +4,7 @@ import LandingPage from "../pages/LandingPage";
 import VictimDashboard from "../pages/Victim/VictimDashboard";
 import SOSRequest from "../pages/Victim/SOSRequest";
 import VolunteerDashboard from "../pages/Volunteer/VolunteerDashboard";
+import AdminDashboard from "../pages/Admin/AdminDashboard";
 
 function AppRoutes() {
   return (
@@ -26,6 +27,12 @@ function AppRoutes() {
       <Route
         path="/volunteer"
         element={<VolunteerDashboard />}
+      />
+
+      {/* Admin Command Center */}
+      <Route
+        path="/admin"
+        element={<AdminDashboard />}
       />
     </Routes>
   );
