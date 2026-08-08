@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../../context/NotificationContext";
-import { listSOSRequests, listVolunteers, listShelters } from "../../api/client";
+import { listSOSRequests, listVolunteers, listShelters, listResources } from "../../api/client";
 import { transformSOSRequest } from "../../utils/sos";
 import {
   LayoutDashboard,
@@ -54,6 +54,32 @@ function transformShelter(shelter) {
   };
 }
 
+// Icons are a display-only concept -- the backend just stores a name, so
+// this maps known resource names to an icon, falling back to a generic
+// box icon for anything an NGO/admin adds that isn't in this list.
+const RESOURCE_ICONS = {
+  "Drinking Water": Droplets,
+  "Food Packets": Utensils,
+  "Medical Kits": HeartPulse,
+  "Emergency Tents": Tent,
+};
+
+const RESOURCE_STATUS_LABELS = {
+  good: "Good",
+  moderate: "Moderate",
+  low: "Low",
+};
+
+function transformResource(resource) {
+  return {
+    id: resource.id,
+    name: resource.name,
+    icon: RESOURCE_ICONS[resource.name] || Package,
+    quantity: `${Number(resource.quantity).toLocaleString()} ${resource.unit}`,
+    status: RESOURCE_STATUS_LABELS[resource.status] || resource.status,
+  };
+}
+
 function AdminDashboard() {
   const [activePage, setActivePage] = useState("Dashboard");
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -61,6 +87,7 @@ function AdminDashboard() {
   const [sosRequests, setSosRequests] = useState([]);
   const [volunteers, setVolunteers] = useState([]);
   const [shelters, setShelters] = useState([]);
+  const [resources, setResources] = useState([]);
   const { isAdminLoggedIn, logout } = useAuth();
   const { showToast } = useNotification();
   const navigate = useNavigate();
@@ -72,10 +99,11 @@ function AdminDashboard() {
 
     async function loadDashboardData(isInitialLoad) {
       try {
-        const [rawSOS, rawVolunteers, rawShelters] = await Promise.all([
+        const [rawSOS, rawVolunteers, rawShelters, rawResources] = await Promise.all([
           listSOSRequests(),
           listVolunteers(),
           listShelters(),
+          listResources(),
         ]);
         if (cancelled) return;
 
@@ -83,6 +111,7 @@ function AdminDashboard() {
         setSosRequests(transformedSOS);
         setVolunteers(rawVolunteers.map((v) => transformVolunteer(v, transformedSOS)));
         setShelters(rawShelters.map(transformShelter));
+        setResources(rawResources.map(transformResource));
       } catch {
         // Only surface a toast on the initial load, not on every failed
         // background refresh -- otherwise a down backend spams a new
@@ -140,33 +169,6 @@ function handleLogout() {
     {
       name: "Resources",
       icon: Package,
-    },
-  ];
-
-  const resources = [
-    {
-      name: "Drinking Water",
-      icon: Droplets,
-      quantity: "1,240 L",
-      status: "Good",
-    },
-    {
-      name: "Food Packets",
-      icon: Utensils,
-      quantity: "486",
-      status: "Moderate",
-    },
-    {
-      name: "Medical Kits",
-      icon: HeartPulse,
-      quantity: "38",
-      status: "Low",
-    },
-    {
-      name: "Emergency Tents",
-      icon: Tent,
-      quantity: "72",
-      status: "Good",
     },
   ];
 
@@ -1104,7 +1106,7 @@ function handleLogout() {
 
                 return (
                   <div
-                    key={resource.name}
+                    key={resource.id}
                     className="rounded-xl border border-white/5 bg-white/[0.02] p-5"
                   >
 

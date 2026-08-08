@@ -90,3 +90,13 @@ export function nearbyShelters(lat, lng, radiusKm = 10) {
     .get("/shelters/nearby", { params: { lat, lng, radius_km: radiusKm } })
     .then((res) => res.data);
 }
+
+// ---------- Resources ----------
+
+export function listResources() {
+  return api.get("/resources/").then((res) => res.data);
+}
+
+export function updateResource(resourceId, quantity, status) {
+  return api.patch(`/resources/${resourceId}`, { quantity, status }).then((res) => res.data);
+}

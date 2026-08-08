@@ -111,6 +111,28 @@ CREATE TABLE IF NOT EXISTS shelters (
     updated_at          TIMESTAMP NOT NULL DEFAULT now()
 );
 
+-- Emergency supply inventory (drinking water, food packets, medical kits,
+-- tents, etc.) -- tracked separately from shelters since one NGO's supply
+-- run typically serves multiple shelters/camps. Helps prevent duplicate
+-- supply drops (multiple NGOs sending the same thing to one place).
+CREATE TABLE IF NOT EXISTS resources (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name                TEXT NOT NULL,
+    quantity            NUMERIC NOT NULL,
+    unit                TEXT NOT NULL,
+
+    -- Set directly by whoever manages the inventory (an NGO/admin), same
+    -- as is_available on volunteers -- not auto-computed from quantity,
+    -- since "low" means a different raw number for water (liters) than
+    -- for medical kits (count).
+    status              TEXT NOT NULL DEFAULT 'good' CHECK (status IN ('good', 'moderate', 'low')),
+
+    managed_by_user_id  UUID REFERENCES users(id),
+
+    created_at          TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at          TIMESTAMP NOT NULL DEFAULT now()
+);
+
 -- Helpful indexes for queries we already know we'll run often (an index is
 -- like a book's table of contents -- it lets Postgres jump straight to
 -- matching rows instead of reading every row in the table).

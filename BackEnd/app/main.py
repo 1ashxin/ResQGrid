@@ -16,7 +16,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
-from .routers import geo, shelters, sos, users, volunteers
+from .routers import geo, resources, shelters, sos, users, volunteers
 
 # Creates any tables described in models.py that don't already exist yet.
 # This is a convenient shortcut for local development. schema.sql (in the
@@ -37,10 +37,10 @@ app = FastAPI(
 # would happily respond.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    # Vite auto-increments the port (5174, 5175, ...) if 5173 is already
+    # taken by another running dev server, so a few extra ports are
+    # allowed here too rather than hardcoding just one.
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):517[3-9]",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -53,6 +53,7 @@ app.include_router(sos.router)
 app.include_router(volunteers.router)
 app.include_router(shelters.router)
 app.include_router(geo.router)
+app.include_router(resources.router)
 
 
 @app.get("/")

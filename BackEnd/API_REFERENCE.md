@@ -49,6 +49,8 @@ Common status codes you'll see:
 - [SOS Requests](#sos-requests)
 - [Volunteers](#volunteers)
 - [Shelters](#shelters)
+- [Resources](#resources)
+- [Geo (PostGIS)](#geo-postgis)
 - [Health Check](#health-check)
 - [Field Reference (enums)](#field-reference-enums)
 
@@ -514,6 +516,141 @@ just flagged as inactive.
 
 ---
 
+## Resources
+
+Emergency supply inventory (drinking water, food packets, medical kits,
+tents, etc.). Tracked separately from shelters since one NGO's supply run
+typically serves multiple shelters/camps — this is what powers the admin
+dashboard's Resource Tracker and helps avoid duplicate supply drops.
+
+### `POST /resources/`
+Register a new supply item being tracked.
+
+**Request body:**
+```json
+{
+  "name": "Drinking Water",
+  "quantity": 1240,
+  "unit": "L",
+  "status": "good",
+  "managed_by_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+}
+```
+`status` defaults to `"good"` if omitted. `managed_by_user_id` is optional.
+
+**Returns (201 Created):**
+```json
+{
+  "id": "d4e5...resource-id",
+  "name": "Drinking Water",
+  "quantity": 1240,
+  "unit": "L",
+  "status": "good",
+  "managed_by_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "created_at": "2026-08-09T09:00:00",
+  "updated_at": "2026-08-09T09:00:00"
+}
+```
+
+---
+
+### `GET /resources/`
+List every tracked resource.
+
+**Returns (200 OK):** an array of resource objects shown above.
+
+---
+
+### `GET /resources/{resource_id}`
+Look up one resource by its ID.
+
+**Returns (200 OK):** a single resource object.
+**Errors:** `404` if that ID doesn't exist.
+
+---
+
+### `PATCH /resources/{resource_id}`
+Updates quantity and status together, e.g. after a supply drop or as stock
+depletes.
+
+**Request body:**
+```json
+{ "quantity": 980, "status": "moderate" }
+```
+`status` must be one of: `"good"`, `"moderate"`, `"low"`. It's set directly
+by whoever manages the inventory, not auto-computed — "low" means a
+different raw quantity for water (liters) than for medical kits (count),
+so there's no universal threshold to compute it from.
+
+**Returns (200 OK):** the updated resource object.
+**Errors:** `404` if that ID doesn't exist.
+
+---
+
+## Geo (PostGIS)
+
+PostGIS-backed alternatives to the plain-lat/lng endpoints already covered
+above (`/sos/{sos_id}/nearest-volunteers` under SOS Requests, and the
+`current_lat`/`current_lng` fields under Volunteers) — these use
+`ST_Distance`/`ST_DWithin` with a spatial index instead of ranking every
+row in Python, so they'll stay fast as the volunteer roster grows. Same
+underlying data, same idea, different implementation.
+
+### `PATCH /geo/volunteers/{user_id}/location`
+PostGIS-backed alternative to `PATCH /volunteers/{volunteer_id}/location`.
+**Note the difference:** this one is keyed by the volunteer's **user_id**
+(from `/users/`), not their volunteer *profile* id.
+
+**Request body:**
+```json
+{ "current_lat": 19.0821, "current_lng": 72.8416 }
+```
+
+**Returns (200 OK):**
+```json
+{
+  "id": "b3f1...profile-id",
+  "user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "full_name": "Rahul Verma",
+  "phone": "+91-9123456780",
+  "is_available": true,
+  "latitude": 19.0821,
+  "longitude": 72.8416
+}
+```
+**Errors:** `404` if no volunteer profile exists for that user_id.
+
+---
+
+### `GET /geo/sos/{sos_id}/nearest-volunteers`
+Returns available volunteers ranked closest-first to this SOS request's
+location, using PostGIS.
+
+**Query parameters (optional):**
+- `limit` — max volunteers to return (default `5`).
+- `radius_meters` — only include volunteers within this distance (default `10000`, i.e. 10 km).
+
+**Returns (200 OK):**
+```json
+[
+  {
+    "profile_id": "b3f1...profile-id",
+    "user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "full_name": "Rahul Verma",
+    "phone": "+91-9123456780",
+    "skills": "First aid, boat driving",
+    "latitude": 19.0821,
+    "longitude": 72.8416,
+    "distance_meters": 512.34,
+    "distance_km": 0.51
+  }
+]
+```
+Only volunteers with `is_available: true` and a known location are
+considered.
+
+---
+
 ## Health Check
 
 ### `GET /`
@@ -538,6 +675,9 @@ else gives you a `422` error.
 
 **SOS `status`:**
 `"pending"` | `"assigned"` | `"in_progress"` | `"resolved"`
+
+**Resource `status`:**
+`"good"` | `"moderate"` | `"low"`
 
 **IDs:** every `id` field (and `user_id`, `assigned_volunteer_id`,
 `managed_by_user_id`, `volunteer_user_id`) is a UUID string, e.g.

@@ -37,6 +37,12 @@ class SOSStatus(str, enum.Enum):
     RESOLVED = "resolved"
 
 
+class ResourceStatus(str, enum.Enum):
+    GOOD = "good"
+    MODERATE = "moderate"
+    LOW = "low"
+
+
 # ---------- User schemas ----------
 
 class UserCreate(BaseModel):
@@ -179,3 +185,31 @@ class ShelterWithDistanceOut(ShelterOut):
     """Same as ShelterOut, plus how far this shelter is from the point that
     was searched around (see GET /shelters/nearby)."""
     distance_km: float
+
+
+# ---------- Resource (inventory) schemas ----------
+
+class ResourceCreate(BaseModel):
+    name: str
+    quantity: float
+    unit: str
+    status: ResourceStatus = ResourceStatus.GOOD
+    managed_by_user_id: Optional[str] = None
+
+
+class ResourceUpdate(BaseModel):
+    quantity: float
+    status: ResourceStatus
+
+
+class ResourceOut(BaseModel):
+    id: str
+    name: str
+    quantity: float
+    unit: str
+    status: ResourceStatus
+    managed_by_user_id: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

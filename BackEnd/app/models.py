@@ -15,7 +15,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, String, Float, Integer, Boolean, DateTime, ForeignKey, Enum as SAEnum
+    Column, String, Float, Integer, Numeric, Boolean, DateTime, ForeignKey, Enum as SAEnum
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -48,6 +48,13 @@ class SOSStatus(str, enum.Enum):
     ASSIGNED = "assigned"
     IN_PROGRESS = "in_progress"
     RESOLVED = "resolved"
+
+
+class ResourceStatus(str, enum.Enum):
+    """How well-stocked a resource/inventory item currently is."""
+    GOOD = "good"
+    MODERATE = "moderate"
+    LOW = "low"
 
 
 class User(Base):
@@ -156,6 +163,28 @@ class Shelter(Base):
     # Soft-delete flag: closed/decommissioned shelters are marked inactive
     # instead of being deleted outright, so historical capacity data isn't lost.
     is_active = Column(Boolean, default=True, nullable=False)
+
+    managed_by_user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Resource(Base):
+    """
+    One row = one type of emergency supply being tracked (e.g. "Drinking
+    Water", quantity 1240, unit "L"). Tracked separately from shelters
+    since a single NGO supply run typically serves multiple shelters/camps
+    -- this is what lets the admin dashboard flag "Food Packets running
+    low" instead of duplicate NGOs re-sending the same supplies.
+    """
+    __tablename__ = "resources"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    name = Column(String, nullable=False)
+    quantity = Column(Numeric, nullable=False)
+    unit = Column(String, nullable=False)
+    status = Column(SAEnum(ResourceStatus, native_enum=False), default=ResourceStatus.GOOD, nullable=False)
 
     managed_by_user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=True)
 
