@@ -90,10 +90,12 @@ class VolunteerProfile(Base):
     skills = Column(String, nullable=True)
     is_available = Column(Boolean, default=True)
 
-    # Plain lat/lng for now (latitude/longitude -- ordinary GPS coordinates).
-    # MEMBER 4 HOOK: once PostGIS is enabled, a real spatial column will
-    # likely be added alongside these -- see the matching comment in
-    # schema.sql for details.
+    # Plain lat/lng (ordinary GPS coordinates), kept for simple display and
+    # as the source of truth the API accepts. schema.sql also has a
+    # current_location geography(Point, 4326) column for PostGIS spatial
+    # queries -- it's not mapped here (no ORM column below) since nothing
+    # writes to it via the ORM; app/geo_spatial.py keeps it in sync with
+    # raw SQL instead, called from routers/volunteers.py and routers/geo.py.
     current_lat = Column(Float, nullable=True)
     current_lng = Column(Float, nullable=True)
 
@@ -118,8 +120,8 @@ class SOSRequest(Base):
     victim_phone = Column(EncryptedString, nullable=False)
     description = Column(EncryptedString, nullable=True)
 
-    # Plain lat/lng for now -- MEMBER 4 HOOK: see schema.sql for the PostGIS
-    # spatial column that should eventually support these.
+    # Plain lat/lng, kept in sync with schema.sql's location geography
+    # column via app/geo_spatial.py (see routers/sos.py's create endpoint).
     location_lat = Column(Float, nullable=False)
     location_lng = Column(Float, nullable=False)
 
@@ -143,7 +145,8 @@ class Shelter(Base):
     name = Column(String, nullable=False)
     address = Column(String, nullable=True)
 
-    # Plain lat/lng for now -- MEMBER 4 HOOK: see schema.sql.
+    # Plain lat/lng, kept in sync with schema.sql's location geography
+    # column via app/geo_spatial.py (see routers/shelters.py's create endpoint).
     location_lat = Column(Float, nullable=False)
     location_lng = Column(Float, nullable=False)
 

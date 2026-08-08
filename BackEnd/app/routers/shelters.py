@@ -9,7 +9,7 @@ currently inside (capacity tracking). All endpoints here start with
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, schemas, geo_spatial
 from ..database import get_db
 from ..geo import haversine_km
 
@@ -30,6 +30,11 @@ def create_shelter(payload: schemas.ShelterCreate, db: Session = Depends(get_db)
     db.add(shelter)
     db.commit()
     db.refresh(shelter)
+
+    # Keeps the PostGIS geography column in sync for "shelters near this
+    # SOS ping" spatial queries.
+    geo_spatial.sync_shelter_geography(db, shelter.id, payload.location_lat, payload.location_lng)
+
     return shelter
 
 

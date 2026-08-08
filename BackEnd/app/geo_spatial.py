@@ -68,5 +68,51 @@ def find_nearest_volunteers_to_sos(
     
     result = db.execute(query, {"sos_id": sos_id, "max_radius": max_radius_meters, "limit": limit})
     rows = result.fetchall()
-    
+
     return [dict(r._mapping) for r in rows]
+
+
+# The three functions below keep the PostGIS geography column in sync
+# whenever a row is created/updated through the plain lat/lng endpoints in
+# routers/sos.py, routers/shelters.py, and routers/volunteers.py -- so
+# spatial queries work on every row, not just ones touched via the
+# /geo/* endpoints above. Called after the row already exists (post-commit),
+# so they update by primary key rather than returning a full row.
+
+def sync_volunteer_geography(db: Session, volunteer_profile_id: str, latitude: float, longitude: float) -> None:
+    """Updates current_location for a volunteer profile, looked up by its own id (not user_id)."""
+    db.execute(
+        text("""
+            UPDATE volunteer_profiles
+            SET current_location = ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+            WHERE id = :id
+        """),
+        {"lat": latitude, "lng": longitude, "id": volunteer_profile_id},
+    )
+    db.commit()
+
+
+def sync_sos_geography(db: Session, sos_id: str, latitude: float, longitude: float) -> None:
+    """Updates the location geography column for an SOS request."""
+    db.execute(
+        text("""
+            UPDATE sos_requests
+            SET location = ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+            WHERE id = :id
+        """),
+        {"lat": latitude, "lng": longitude, "id": sos_id},
+    )
+    db.commit()
+
+
+def sync_shelter_geography(db: Session, shelter_id: str, latitude: float, longitude: float) -> None:
+    """Updates the location geography column for a shelter."""
+    db.execute(
+        text("""
+            UPDATE shelters
+            SET location = ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+            WHERE id = :id
+        """),
+        {"lat": latitude, "lng": longitude, "id": shelter_id},
+    )
+    db.commit()

@@ -8,7 +8,7 @@ volunteer to help. All endpoints here start with "/sos".
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, schemas, geo_spatial
 from ..database import get_db
 from ..geo import haversine_km
 
@@ -34,6 +34,11 @@ def create_sos_request(payload: schemas.SOSRequestCreate, db: Session = Depends(
     db.add(new_request)
     db.commit()
     db.refresh(new_request)
+
+    # Keeps the PostGIS geography column in sync so nearest-volunteer
+    # spatial queries (see routers/geo.py) work on this request too.
+    geo_spatial.sync_sos_geography(db, new_request.id, payload.location_lat, payload.location_lng)
+
     return new_request
 
 

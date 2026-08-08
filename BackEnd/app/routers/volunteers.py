@@ -9,7 +9,7 @@ availability or current location. All endpoints here start with
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, schemas, geo_spatial
 from ..database import get_db
 
 router = APIRouter(prefix="/volunteers", tags=["Volunteers"])
@@ -89,12 +89,10 @@ def update_location(
     volunteer_id: str, payload: schemas.VolunteerLocationUpdate, db: Session = Depends(get_db)
 ):
     """
-    Updates a volunteer's current GPS location.
-
-    MEMBER 4 HOOK: once PostGIS is set up (see schema.sql), this is likely
-    where you'll also update a geography(Point) column so "nearest
-    volunteer to this SOS ping" queries can use a fast spatial database
-    index instead of plain lat/lng math in Python.
+    Updates a volunteer's current GPS location, keeping the PostGIS
+    current_location column in sync so "nearest volunteer to this SOS
+    ping" queries (see routers/geo.py) see fresh data regardless of
+    whether this endpoint or the /geo/ one was used to update it.
     """
     profile = db.query(models.VolunteerProfile).filter(models.VolunteerProfile.id == volunteer_id).first()
     if not profile:
@@ -103,4 +101,7 @@ def update_location(
     profile.current_lng = payload.current_lng
     db.commit()
     db.refresh(profile)
+
+    geo_spatial.sync_volunteer_geography(db, profile.id, payload.current_lat, payload.current_lng)
+
     return profile

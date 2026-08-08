@@ -11,12 +11,11 @@
 -- (On PostgreSQL 13+, gen_random_uuid() ships in core and this is a no-op.)
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- ============================================================
--- MEMBER 4 HOOK: enable the PostGIS extension before adding any of the
--- spatial columns marked below. Requires PostGIS to be installed on the
--- PostgreSQL server first.
--- ============================================================
--- CREATE EXTENSION IF NOT EXISTS postgis;
+-- Enables PostGIS -- the geography(Point, 4326) columns below and the
+-- ST_Distance/ST_DWithin spatial queries in app/geo_spatial.py depend on
+-- this. Requires PostGIS to be installed on the PostgreSQL server itself
+-- (see BackEnd/README.md for the install steps).
+CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- Roles are restricted with a CHECK constraint instead of a native Postgres
 -- ENUM type, so the list of allowed roles can be changed later without a
@@ -42,18 +41,16 @@ CREATE TABLE IF NOT EXISTS volunteer_profiles (
     current_lat    DOUBLE PRECISION,
     current_lng    DOUBLE PRECISION,
 
-    -- ============================================================
-    -- MEMBER 4 HOOK: add a real spatial column here once PostGIS is
-    -- enabled, e.g.:
-    --   current_location geography(Point, 4326)
-    -- Then keep it in sync with current_lat/current_lng (via app code or a
-    -- trigger), and add a spatial index:
-    --   CREATE INDEX volunteer_profiles_location_idx
-    --     ON volunteer_profiles USING GIST (current_location);
-    -- ============================================================
+    -- PostGIS spatial column, kept in sync with current_lat/current_lng by
+    -- the application (see app/geo_spatial.py and the routers that call
+    -- it) rather than a DB trigger, so the sync logic lives in one place.
+    current_location geography(Point, 4326),
 
     created_at     TIMESTAMP NOT NULL DEFAULT now()
 );
+
+CREATE INDEX IF NOT EXISTS volunteer_profiles_location_idx
+    ON volunteer_profiles USING GIST (current_location);
 
 CREATE TABLE IF NOT EXISTS sos_requests (
     id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -69,13 +66,11 @@ CREATE TABLE IF NOT EXISTS sos_requests (
     location_lat          DOUBLE PRECISION NOT NULL,
     location_lng          DOUBLE PRECISION NOT NULL,
 
-    -- ============================================================
-    -- MEMBER 4 HOOK: add a real spatial column here once PostGIS is
-    -- enabled, e.g.:
-    --   location geography(Point, 4326)
-    -- This is what will power "find nearest volunteer to this SOS ping"
-    -- queries using ST_DWithin / ST_Distance instead of manual lat/lng math.
-    -- ============================================================
+    -- PostGIS spatial column -- powers "find nearest volunteer to this SOS
+    -- ping" via ST_DWithin/ST_Distance (app/geo_spatial.py) instead of
+    -- manual lat/lng math. Kept in sync with location_lat/location_lng by
+    -- the application.
+    location              geography(Point, 4326),
 
     status                TEXT NOT NULL DEFAULT 'pending'
                           CHECK (status IN ('pending', 'assigned', 'in_progress', 'resolved')),
@@ -87,6 +82,9 @@ CREATE TABLE IF NOT EXISTS sos_requests (
     updated_at            TIMESTAMP NOT NULL DEFAULT now()
 );
 
+CREATE INDEX IF NOT EXISTS sos_requests_location_idx
+    ON sos_requests USING GIST (location);
+
 CREATE TABLE IF NOT EXISTS shelters (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name                TEXT NOT NULL,
@@ -95,12 +93,10 @@ CREATE TABLE IF NOT EXISTS shelters (
     location_lat        DOUBLE PRECISION NOT NULL,
     location_lng        DOUBLE PRECISION NOT NULL,
 
-    -- ============================================================
-    -- MEMBER 4 HOOK: add a real spatial column here once PostGIS is
-    -- enabled, e.g.:
-    --   location geography(Point, 4326)
-    -- Useful for "shelters within N km of this SOS ping" queries.
-    -- ============================================================
+    -- PostGIS spatial column -- useful for "shelters within N km of this
+    -- SOS ping" queries. Kept in sync with location_lat/location_lng by
+    -- the application.
+    location            geography(Point, 4326),
 
     capacity_total      INTEGER NOT NULL,
     capacity_occupied   INTEGER NOT NULL DEFAULT 0,
@@ -121,3 +117,4 @@ CREATE TABLE IF NOT EXISTS shelters (
 CREATE INDEX IF NOT EXISTS idx_sos_requests_status ON sos_requests(status);
 CREATE INDEX IF NOT EXISTS idx_sos_requests_created_at ON sos_requests(created_at);
 CREATE INDEX IF NOT EXISTS idx_volunteer_profiles_is_available ON volunteer_profiles(is_available);
+CREATE INDEX IF NOT EXISTS shelters_location_idx ON shelters USING GIST (location);
