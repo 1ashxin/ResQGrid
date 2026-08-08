@@ -6,38 +6,37 @@ commands -- every new term is explained there first.
 
 ## What this backend actually does
 
-Think of this backend as the "kitchen" behind a restaurant's dining room
-(the frontend apps in `../FrontEnd`). Customers (victims, volunteers,
-admins, NGOs) never walk into the kitchen -- they place orders (HTTP
-requests) from their table, and the kitchen (this backend) prepares and
-returns a response (JSON data), while the fridge (the PostgreSQL database)
-stores everything long-term.
+This backend is a FastAPI web server. The frontend apps (`../FrontEnd`)
+send it HTTP requests -- e.g. "create this SOS request" or "get all
+shelters" -- and it validates the request, runs the needed logic, and
+sends back a response as JSON data. A PostgreSQL database stores all of
+that data permanently between requests: users, SOS requests, volunteer
+profiles, and shelters all live there.
 
 ## Concepts in Plain English
 
 - **API** -- a defined set of URLs the frontend is allowed to call to get or
   send data. Like a restaurant menu of things you can order.
-- **FastAPI** -- the Python framework/library we use to build that menu of
-  URLs quickly, with automatic input checking and free interactive docs.
+- **FastAPI** -- the Python framework/library we use to build those URLs
+  quickly, with automatic input checking and free interactive docs.
 - **Uvicorn** -- the program that actually runs our FastAPI app and listens
-  for incoming requests. FastAPI is the recipe; Uvicorn is the stove.
-- **PostgreSQL** -- the database (the "fridge") where all data is
-  permanently stored: users, SOS requests, volunteers, shelters.
+  for incoming network requests, passing each one to FastAPI to handle.
+- **PostgreSQL** -- the database where all data is permanently stored:
+  users, SOS requests, volunteers, shelters.
 - **SQLAlchemy (ORM)** -- a Python library that lets us read/write database
   rows using normal Python objects and classes, instead of writing raw SQL
   by hand for every query. ("ORM" = Object-Relational Mapper.)
-- **Pydantic schema** -- a strict "form template" that checks incoming JSON
-  has the right fields and types before our code touches it, and shapes
-  outgoing JSON responses.
+-  **Pydantic schema** -- a strict definition of the fields and types a
+  request must contain, checked before our code touches it, and used to
+  shape the JSON we send back in responses.
 - **bcrypt** -- an algorithm that turns a password into an irreversible
   scrambled hash, so we never store what a user actually typed.
-- **Fernet encryption** -- a way to lock (encrypt) and unlock (decrypt) text
-  using one secret key. Used here to protect victims' name/phone/description.
+- **Fernet encryption** -- a way to encrypt and decrypt text using one
+  secret key. Used here to protect victims' name/phone/description.
 - **.env file** -- a private text file (never committed to git) holding
   secrets like your database password and encryption key.
 - **PostGIS** -- a PostgreSQL extension for geographic/location queries
-  (e.g. "find every volunteer within 5 km"). Not wired up yet -- look for
-  the `MEMBER 4 HOOK` comments in `schema.sql`.
+  (e.g. "find every volunteer within 5 km").
 
 ## One-time setup
 
