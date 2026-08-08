@@ -1,7 +1,11 @@
+import { useState } from "react";
+
 import DashboardLayout from "../../layouts/DashboardLayout";
 
 import VolunteerHeader from "../../components/volunteer/VolunteerHeader";
 import VolunteerStats from "../../components/volunteer/VolunteerStats";
+import RequestCard from "../../components/volunteer/RequestCard";
+
 import ResponseMap from "../../components/shared/ResponseMap";
 
 import {
@@ -12,23 +16,57 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-import { useRequest } from "../../context/RequestContext";
 import { useNotification } from "../../context/NotificationContext";
 
+const dummyRequests = [
+  {
+    id: 1,
+    emergency: "Flood Emergency",
+    location: "Sector 12, Navi Mumbai",
+    people: 24,
+    phone: "+91 98765 43210",
+    priority: "High",
+    distance: "2.4 km",
+    time: "5 mins ago",
+    notes:
+      "Water level rising rapidly. Families stranded on upper floors.",
+  },
+  {
+    id: 2,
+    emergency: "Medical Emergency",
+    location: "Vashi",
+    people: 2,
+    phone: "+91 99887 65432",
+    priority: "Medium",
+    distance: "4.1 km",
+    time: "12 mins ago",
+    notes:
+      "Elderly person requires immediate medical assistance.",
+  },
+  {
+    id: 3,
+    emergency: "Food & Water",
+    location: "Panvel",
+    people: 18,
+    phone: "+91 97654 32109",
+    priority: "Low",
+    distance: "6.2 km",
+    time: "20 mins ago",
+    notes:
+      "Relief supplies requested for temporary shelter.",
+  },
+];
+
 export default function VolunteerDashboard() {
-  const {
-    requestStatus,
-    requestData,
-    setRequestStatus,
-  } = useRequest();
+  const [activeMission, setActiveMission] = useState(null);
 
   const { showToast } = useNotification();
 
-  function handleAccept() {
-    setRequestStatus("assigned");
+  function handleAccept(request) {
+    setActiveMission(request);
 
     showToast(
-      "You have accepted the emergency request.",
+      "Emergency request accepted successfully.",
       "success"
     );
   }
@@ -40,43 +78,42 @@ export default function VolunteerDashboard() {
 
       <VolunteerStats />
 
-      {/* Incoming Requests */}
-      <section className="mt-10">
+      <section className="mt-12">
 
-        <div className="mb-8">
+        {!activeMission && (
 
-          <p className="section-label text-sm">
-            Incoming Requests
-          </p>
+          <>
+            <div className="mb-8">
 
-          <h2 className="section-title mt-2 text-4xl">
-            Nearby Emergencies
-          </h2>
+              <p className="text-brand text-sm font-semibold uppercase tracking-[0.25em]">
+                Incoming Requests
+              </p>
 
-        </div>
+              <h2 className="mt-2 text-4xl font-bold text-primary">
+                Nearby Emergencies
+              </h2>
 
-        {requestStatus === "idle" && (
+            </div>
 
-          <div className="card-glass rounded-3xl p-12 text-center">
+            <div className="space-y-6">
 
-            <CheckCircle2
-              size={60}
-              className="mx-auto text-success"
-            />
+              {dummyRequests.map((request) => (
 
-            <h3 className="section-title mt-6 text-3xl">
-              No Active Requests
-            </h3>
+                <RequestCard
+                  key={request.id}
+                  request={request}
+                  onAccept={handleAccept}
+                />
 
-            <p className="section-subtitle mt-3">
-              New SOS requests will automatically appear here.
-            </p>
+              ))}
 
-          </div>
+            </div>
+
+          </>
 
         )}
 
-        {requestStatus !== "idle" && requestData && (
+        {activeMission && (
 
           <div className="card-glass rounded-3xl p-8">
 
@@ -84,31 +121,37 @@ export default function VolunteerDashboard() {
 
               <div className="flex items-center gap-5">
 
-                <div className="card-glass rounded-3xl p-5">
+                <div className="rounded-3xl bg-danger p-5">
 
                   <Flame
                     size={36}
-                    className="text-danger"
+                    className="text-white"
                   />
 
                 </div>
 
                 <div>
 
-                  <h2 className="section-title text-3xl">
-                    {requestData.emergency}
+                  <p className="text-brand text-sm uppercase tracking-[0.25em]">
+                    Current Mission
+                  </p>
+
+                  <h2 className="mt-2 text-3xl font-bold text-primary">
+                    {activeMission.emergency}
                   </h2>
 
-                  <p className="section-subtitle mt-2">
-                    High Priority Emergency
+                  <p className="mt-2 text-secondary">
+                    You have accepted this emergency request.
                   </p>
 
                 </div>
 
               </div>
 
-              <div className="rounded-full bg-danger px-5 py-2 font-semibold text-primary">
-                HIGH
+              <div className="rounded-full bg-success px-5 py-2 font-semibold text-white">
+
+                Assigned
+
               </div>
 
             </div>
@@ -118,75 +161,71 @@ export default function VolunteerDashboard() {
               <InfoCard
                 icon={<Users className="text-brand" />}
                 title="People Requiring Help"
-                value={requestData.people || "1"}
+                value={activeMission.people}
               />
 
               <InfoCard
                 icon={<MapPin className="text-danger" />}
                 title="Location"
-                value={requestData.location}
+                value={activeMission.location}
               />
 
               <InfoCard
                 icon={<Phone className="text-success" />}
                 title="Contact Number"
-                value={requestData.phone}
+                value={activeMission.phone}
               />
 
               <InfoCard
-                title="Victim Name"
-                value={requestData.name}
+                title="Priority"
+                value={activeMission.priority}
               />
 
             </div>
 
-            {requestData.notes && (
+            <div className="mt-8 rounded-2xl bg-card p-6">
 
-              <div className="card-glass mt-8 rounded-2xl p-6">
+              <p className="text-sm text-muted">
+                Situation Details
+              </p>
 
-                <p className="text-muted text-sm">
-                  Situation Details
-                </p>
+              <p className="mt-3 leading-7 text-secondary">
+                {activeMission.notes}
+              </p>
 
-                <p className="section-subtitle mt-3 leading-7">
-                  {requestData.notes}
-                </p>
+            </div>
 
-              </div>
+            <div className="mt-8 grid gap-4 md:grid-cols-2">
 
-            )}
+              <button className="btn-success rounded-2xl py-4 font-semibold">
 
-            {requestStatus === "searching" && (
+                Call Victim
 
-              <button
-                onClick={handleAccept}
-                className="btn-success mt-10 w-full rounded-2xl py-4 text-lg font-semibold transition-all duration-300 hover:scale-[1.01]"
-              >
-                Accept Request
               </button>
 
-            )}
+              <button className="btn-primary rounded-2xl py-4 font-semibold">
 
-            {requestStatus === "assigned" && (
+                Navigate
 
-              <div className="card-glass mt-10 rounded-2xl p-6 text-center">
+              </button>
 
-                <CheckCircle2
-                  size={42}
-                  className="mx-auto text-success"
-                />
+            </div>
 
-                <h3 className="section-title mt-4 text-2xl">
-                  Request Accepted
-                </h3>
+            <button
+              onClick={() => {
+                setActiveMission(null);
 
-                <p className="section-subtitle mt-2">
-                  The victim has been notified that you're on the way.
-                </p>
+                showToast(
+                  "Mission marked as completed.",
+                  "success"
+                );
+              }}
+              className="btn-danger mt-6 w-full rounded-2xl py-4 font-semibold"
+            >
 
-              </div>
+              Complete Mission
 
-            )}
+            </button>
 
           </div>
 
@@ -194,13 +233,11 @@ export default function VolunteerDashboard() {
 
       </section>
 
-      {/* Live Response Map */}
-
-      <section className="mt-12">
+      <div className="mt-12">
 
         <ResponseMap />
 
-      </section>
+      </div>
 
     </DashboardLayout>
   );
@@ -208,15 +245,15 @@ export default function VolunteerDashboard() {
 
 function InfoCard({ icon, title, value }) {
   return (
-    <div className="card-glass rounded-2xl p-6">
+    <div className="bg-card rounded-2xl p-5">
 
       {icon && <div className="mb-3">{icon}</div>}
 
-      <p className="text-muted text-sm">
+      <p className="text-sm text-muted">
         {title}
       </p>
 
-      <h3 className="section-title mt-2 text-xl">
+      <h3 className="mt-2 text-xl font-semibold text-primary">
         {value}
       </h3>
 
