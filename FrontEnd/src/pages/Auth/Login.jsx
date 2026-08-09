@@ -20,8 +20,10 @@ export default function Login() {
 
     try {
       const user = await loginUser({ email, password });
+
       login(user);
-      navigate(user.role === "volunteer" ? "/volunteer" : "/admin");
+
+      navigate(user.role === "volunteer" ? "/volunteer/dashboard" : "/admin");
     } catch (err) {
       if (err.response?.status === 401) {
         setError("Invalid email or password.");
@@ -34,9 +36,11 @@ export default function Login() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-[#35506D] via-[#314B67] to-[#223449] flex items-center justify-center px-6">
+    <main className="flex min-h-screen items-center justify-center bg-background px-6">
 
-      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-10 backdrop-blur-xl shadow-2xl">
+      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-10 shadow-2xl backdrop-blur-xl">
+
+        {/* Icon */}
 
         <div className="flex justify-center">
 
@@ -51,13 +55,17 @@ export default function Login() {
 
         </div>
 
+        {/* Heading */}
+
         <h1 className="mt-6 text-center text-4xl font-bold text-white">
-          Admin Login
+          ResQGrid Command Center
         </h1>
 
         <p className="mt-2 text-center text-slate-300">
-          Sign in to access the ResQGrid Command Center
+          Secure administrator access
         </p>
+
+        {/* Login Form */}
 
         <form
           onSubmit={handleLogin}
@@ -76,7 +84,7 @@ export default function Login() {
               placeholder="Admin Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/5 py-4 pl-12 pr-4 text-white outline-none focus:border-sky-400"
+              className="w-full rounded-xl border border-white/10 bg-white/5 py-4 pl-12 pr-4 text-white outline-none transition focus:border-sky-400"
             />
 
           </div>
@@ -93,7 +101,7 @@ export default function Login() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/5 py-4 pl-12 pr-4 text-white outline-none focus:border-sky-400"
+              className="w-full rounded-xl border border-white/10 bg-white/5 py-4 pl-12 pr-4 text-white outline-none transition focus:border-sky-400"
             />
 
           </div>
@@ -109,21 +117,21 @@ export default function Login() {
             disabled={submitting}
             className="w-full rounded-2xl bg-[#FF6B6B] py-4 font-semibold text-white transition hover:bg-[#ff8080] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting ? "Signing in..." : "Sign In"}
+            {submitting ? "Signing In..." : "Sign In"}
           </button>
 
         </form>
 
-        <div className="mt-8 rounded-2xl bg-white/5 p-4 text-sm text-slate-300">
+        {/* Footer */}
+
+        <div className="mt-8 rounded-2xl bg-white/5 p-5 text-center">
 
           <p className="font-semibold text-white">
-            No account yet?
+            Secure Command Center
           </p>
 
-          <p className="mt-2">
-            Register one via <code>POST /users/register</code> at the
-            backend's <code>/docs</code> page with role "admin", "ngo", or
-            "volunteer", then sign in here with that email/password.
+          <p className="mt-2 text-sm text-slate-400">
+            Access is restricted to authorized ResQGrid administrators.
           </p>
 
         </div>

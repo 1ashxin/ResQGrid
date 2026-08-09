@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../../context/NotificationContext";
 import { listSOSRequests, listVolunteers, listShelters, listResources } from "../../api/client";
 import { transformSOSRequest } from "../../utils/sos";
+
 import {
   LayoutDashboard,
   Siren,
@@ -15,10 +16,7 @@ import {
   Search,
   ChevronRight,
   Activity,
-  Clock,
-  CheckCircle2,
   AlertTriangle,
-  Truck,
   UserRound,
   Droplets,
   Utensils,
@@ -27,32 +25,11 @@ import {
   Radio,
   X,
   Menu,
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  Truck,
 } from "lucide-react";
-
-function transformVolunteer(volunteer, sosRequests) {
-  const activeMission = sosRequests.find(
-    (sos) => sos.assignedVolunteerId === volunteer.user_id
-  );
-  return {
-    name: volunteer.full_name,
-    location:
-      volunteer.current_lat != null && volunteer.current_lng != null
-        ? `${volunteer.current_lat.toFixed(3)}, ${volunteer.current_lng.toFixed(3)}`
-        : "Unknown",
-    status: volunteer.is_available ? "Available" : "On Mission",
-    task: activeMission ? activeMission.id : "None",
-  };
-}
-
-function transformShelter(shelter) {
-  return {
-    name: shelter.name,
-    location: shelter.address || `${shelter.location_lat.toFixed(3)}, ${shelter.location_lng.toFixed(3)}`,
-    capacity: shelter.capacity_total,
-    occupied: shelter.capacity_occupied,
-    status: shelter.is_active ? "Operational" : "Closed",
-  };
-}
 
 // Icons are a display-only concept -- the backend just stores a name, so
 // this maps known resource names to an icon, falling back to a generic
@@ -70,13 +47,59 @@ const RESOURCE_STATUS_LABELS = {
   low: "Low",
 };
 
+// The backend tracks resource status (good/moderate/low) but not a numeric
+// stock percentage, so this approximates a stock-level bar from the status
+// tier -- purely presentational, doesn't affect the real quantity shown.
+const RESOURCE_STOCK_PERCENTAGE = {
+  Good: 80,
+  Moderate: 50,
+  Low: 20,
+};
+
 function transformResource(resource) {
+  const status = RESOURCE_STATUS_LABELS[resource.status] || resource.status;
   return {
     id: resource.id,
     name: resource.name,
     icon: RESOURCE_ICONS[resource.name] || Package,
     quantity: `${Number(resource.quantity).toLocaleString()} ${resource.unit}`,
-    status: RESOURCE_STATUS_LABELS[resource.status] || resource.status,
+    status,
+    percentage: RESOURCE_STOCK_PERCENTAGE[status] ?? 50,
+  };
+}
+
+function transformVolunteer(volunteer, sosRequests) {
+  const activeMission = sosRequests.find(
+    (sos) => sos.assignedVolunteerId === volunteer.user_id
+  );
+  return {
+    name: volunteer.full_name,
+    location:
+      volunteer.current_lat != null && volunteer.current_lng != null
+        ? `${volunteer.current_lat.toFixed(3)}, ${volunteer.current_lng.toFixed(3)}`
+        : "Unknown",
+    status: volunteer.is_available ? "Available" : "On Mission",
+    task: activeMission ? activeMission.id : "None",
+    phone: volunteer.phone,
+  };
+}
+
+function transformShelter(shelter) {
+  const percentage = Math.round(
+    (shelter.capacity_occupied / shelter.capacity_total) * 100
+  );
+  return {
+    name: shelter.name,
+    location:
+      shelter.address ||
+      `${shelter.location_lat.toFixed(3)}, ${shelter.location_lng.toFixed(3)}`,
+    capacity: shelter.capacity_total,
+    occupied: shelter.capacity_occupied,
+    status: !shelter.is_active
+      ? "Closed"
+      : percentage >= 85
+        ? "Near Capacity"
+        : "Operational",
   };
 }
 
@@ -84,10 +107,13 @@ function AdminDashboard() {
   const [activePage, setActivePage] = useState("Dashboard");
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [sosRequests, setSosRequests] = useState([]);
   const [volunteers, setVolunteers] = useState([]);
   const [shelters, setShelters] = useState([]);
   const [resources, setResources] = useState([]);
+
   const { isAdminLoggedIn, logout } = useAuth();
   const { showToast } = useNotification();
   const navigate = useNavigate();
@@ -135,15 +161,6 @@ function AdminDashboard() {
     return <Navigate to="/login" replace />;
   }
 
-function handleLogout() {
-  logout();
-  navigate("/");
-}
-
-  if (!isAdminLoggedIn) {
-    return <Navigate to="/login" replace />;
-  }
-
   function handleLogout() {
     logout();
     navigate("/");
@@ -172,6 +189,37 @@ function handleLogout() {
     },
   ];
 
+  const notifications = [
+    {
+      title: "Critical SOS detected",
+      location: "Kothrud",
+      time: "2 min ago",
+      icon: AlertTriangle,
+      type: "critical",
+    },
+    {
+      title: "Shelter nearing capacity",
+      location: "Shelter B · Baner",
+      time: "5 min ago",
+      icon: Building2,
+      type: "warning",
+    },
+    {
+      title: "Medical supplies low",
+      location: "Shelter C · Aundh",
+      time: "8 min ago",
+      icon: Package,
+      type: "warning",
+    },
+    {
+      title: "Response team deployed",
+      location: "Baner",
+      time: "12 min ago",
+      icon: Radio,
+      type: "info",
+    },
+  ];
+
   const criticalCount = sosRequests.filter(
     (item) => item.priority === "CRITICAL"
   ).length;
@@ -194,19 +242,98 @@ function handleLogout() {
     (occupiedCapacity / totalCapacity) * 100
   );
 
-  const handleNavigation = (page) => {
+  const filteredSOS = sosRequests.filter((item) =>
+    `${item.id} ${item.request} ${item.location} ${item.priority} ${item.status}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
+  const filteredVolunteers = volunteers.filter((item) =>
+    `${item.name} ${item.location} ${item.status}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
+  const filteredShelters = shelters.filter((item) =>
+    `${item.name} ${item.location} ${item.status}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
+  const filteredResources = resources.filter((item) =>
+    `${item.name} ${item.status}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
+  function handleNavigation(page) {
     setActivePage(page);
     setSidebarOpen(false);
-  };
+    setSearchTerm("");
+  }
+
+  function PriorityBadge({ priority }) {
+    return (
+      <span
+        className={`rounded-md px-2 py-1 text-[10px] font-bold ${
+          priority === "CRITICAL"
+            ? "bg-red-500/10 text-red-400"
+            : priority === "HIGH"
+              ? "bg-yellow-500/10 text-yellow-400"
+              : "bg-blue-500/10 text-blue-400"
+        }`}
+      >
+        {priority}
+      </span>
+    );
+  }
+
+  function StatusBadge({ status }) {
+    let style = "text-gray-400";
+
+    if (
+      status === "Available" ||
+      status === "Operational" ||
+      status === "Assigned" ||
+      status === "Good"
+    ) {
+      style = "text-green-400";
+    }
+
+    if (
+      status === "Unassigned" ||
+      status === "Low" ||
+      status === "Offline"
+    ) {
+      style = "text-red-400";
+    }
+
+    if (
+      status === "Pending" ||
+      status === "Near Capacity" ||
+      status === "Moderate" ||
+      status === "On Mission"
+    ) {
+      style = "text-yellow-400";
+    }
+
+    return <span className={`text-sm ${style}`}>{status}</span>;
+  }
 
   return (
     <div className="min-h-screen bg-[#07111f] text-white">
 
-      {/* Mobile Header */}
+      {/* MOBILE HEADER */}
       <div className="fixed left-0 right-0 top-0 z-40 flex h-16 items-center justify-between border-b border-white/10 bg-[#091522] px-5 lg:hidden">
+
         <div>
-          <h1 className="text-xl font-bold">ResQGrid</h1>
-          <p className="text-xs text-gray-500">Command Center</p>
+          <h1 className="text-xl font-bold">
+            ResQGrid
+          </h1>
+
+          <p className="text-xs text-gray-500">
+            Command Center
+          </p>
         </div>
 
         <button
@@ -215,18 +342,22 @@ function handleLogout() {
         >
           <Menu size={22} />
         </button>
+
       </div>
 
-      {/* Sidebar */}
+      {/* SIDEBAR */}
       <aside
         className={`fixed left-0 top-0 z-50 h-screen w-64 border-r border-white/10 bg-[#091522] p-6 transition-transform duration-300 lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          sidebarOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
         }`}
       >
 
-        <div className="mb-10 flex items-start justify-between">
+        <div className="mb-8 flex items-start justify-between">
+
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">
+            <h1 className="text-2xl font-bold">
               ResQGrid
             </h1>
 
@@ -241,27 +372,33 @@ function handleLogout() {
           >
             <X size={18} />
           </button>
+
         </div>
 
-        {/* System Status */}
+        {/* SYSTEM STATUS */}
         <div className="mb-8 rounded-xl border border-green-500/20 bg-green-500/5 p-3">
+
           <div className="flex items-center gap-2">
+
             <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
 
             <span className="text-xs font-medium text-green-400">
               SYSTEM OPERATIONAL
             </span>
+
           </div>
 
           <p className="mt-2 text-xs text-gray-500">
             All monitoring systems active
           </p>
+
         </div>
 
-        {/* Navigation */}
+        {/* NAVIGATION */}
         <nav className="space-y-2">
 
           {navItems.map((item) => {
+
             const Icon = item.icon;
             const isActive = activePage === item.name;
 
@@ -275,6 +412,7 @@ function handleLogout() {
                     : "text-gray-400 hover:bg-white/5 hover:text-white"
                 }`}
               >
+
                 <Icon size={19} />
 
                 <span className="text-sm font-medium">
@@ -286,30 +424,45 @@ function handleLogout() {
                     {sosRequests.length}
                   </span>
                 )}
+
               </button>
             );
           })}
 
         </nav>
 
-        {/* Bottom Admin Info */}
-        <div className="absolute bottom-6 left-6 right-6 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        {/* ADMIN */}
+        <div className="absolute bottom-6 left-6 right-6">
 
-          <div className="flex items-center gap-3">
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
 
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-red-500/15">
-              <UserRound size={17} className="text-red-400" />
+            <div className="flex items-center gap-3">
+
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-red-500/15">
+                <UserRound
+                  size={17}
+                  className="text-red-400"
+                />
+              </div>
+
+              <div>
+                <p className="text-sm font-medium">
+                  Administrator
+                </p>
+
+                <p className="text-xs text-gray-500">
+                  Emergency Operations
+                </p>
+              </div>
+
             </div>
 
-            <div>
-              <p className="text-sm font-medium">
-                Administrator
-              </p>
-
-              <p className="text-xs text-gray-500">
-                Emergency Operations
-              </p>
-            </div>
+            <button
+              onClick={handleLogout}
+              className="mt-4 w-full rounded-lg bg-red-500/10 py-2 text-xs font-medium text-red-400 hover:bg-red-500/20"
+            >
+              Logout
+            </button>
 
           </div>
 
@@ -317,356 +470,458 @@ function handleLogout() {
 
       </aside>
 
-      {/* Main Content */}
+      {/* MAIN */}
       <main className="min-h-screen lg:ml-64">
 
-        <div className="p-5 pt-24 sm:p-8 sm:pt-24 lg:p-8">
+        <div className="p-5 pt-24 sm:p-8 lg:p-8">
 
-          {/* Header */}
+          {/* HEADER */}
           <header className="mb-8 flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
 
             <div>
+
               <div className="flex items-center gap-2 text-sm text-gray-400">
-                <Activity size={15} className="text-green-400" />
+                <Activity
+                  size={15}
+                  className="text-green-400"
+                />
+
                 Emergency Operations
               </div>
 
               <h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-                Disaster Command Center
+                {activePage === "Dashboard"
+                  ? "Disaster Command Center"
+                  : activePage}
               </h2>
 
               <p className="mt-2 text-sm text-gray-500">
-                Real-time overview of disaster response operations
+                {activePage === "Dashboard"
+                  ? "Real-time overview of disaster response operations"
+                  : `Manage ${activePage.toLowerCase()} and response operations`}
               </p>
+
             </div>
 
             <div className="flex items-center gap-3">
 
-              {/* Notification */}
-              <button className="relative rounded-xl border border-white/10 bg-[#0d1b2a] p-3 text-gray-400 hover:text-white">
-                <Bell size={19} />
+              {/* NOTIFICATION BUTTON */}
+              <div className="relative">
 
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
-              </button>
+                <button
+                  onClick={() =>
+                    setNotificationsOpen(!notificationsOpen)
+                  }
+                  className="relative rounded-xl border border-white/10 bg-[#0d1b2a] p-3 text-gray-400 hover:text-white"
+                >
+                  <Bell size={19} />
 
-              {/* Disaster Status */}
+                  <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
+                </button>
+
+                {/* NOTIFICATION PANEL */}
+                {notificationsOpen && (
+                  <div className="absolute right-0 top-14 z-50 w-80 overflow-hidden rounded-2xl border border-white/10 bg-[#0d1b2a] shadow-2xl">
+
+                    <div className="flex items-center justify-between border-b border-white/10 p-4">
+
+                      <div>
+                        <h3 className="font-semibold">
+                          Notifications
+                        </h3>
+
+                        <p className="text-xs text-gray-500">
+                          Recent system alerts
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() =>
+                          setNotificationsOpen(false)
+                        }
+                        className="text-gray-500 hover:text-white"
+                      >
+                        <X size={16} />
+                      </button>
+
+                    </div>
+
+                    <div className="max-h-80 overflow-y-auto">
+
+                      {notifications.map(
+                        (notification, index) => {
+
+                          const Icon =
+                            notification.icon;
+
+                          return (
+                            <div
+                              key={index}
+                              className="border-b border-white/5 p-4 hover:bg-white/[0.03]"
+                            >
+
+                              <div className="flex gap-3">
+
+                                <Icon
+                                  size={18}
+                                  className={
+                                    notification.type ===
+                                    "critical"
+                                      ? "text-red-400"
+                                      : notification.type ===
+                                          "warning"
+                                        ? "text-yellow-400"
+                                        : "text-blue-400"
+                                  }
+                                />
+
+                                <div>
+
+                                  <p className="text-sm font-medium">
+                                    {notification.title}
+                                  </p>
+
+                                  <p className="mt-1 text-xs text-gray-500">
+                                    {notification.location}
+                                  </p>
+
+                                  <p className="mt-1 text-[10px] text-gray-600">
+                                    {notification.time}
+                                  </p>
+
+                                </div>
+
+                              </div>
+
+                            </div>
+                          );
+                        }
+                      )}
+
+                    </div>
+
+                  </div>
+                )}
+
+              </div>
+
+              {/* DISASTER STATUS */}
               <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-3">
+
                 <p className="text-[10px] font-medium tracking-wider text-gray-400">
                   ACTIVE DISASTER
                 </p>
 
                 <div className="mt-1 flex items-center gap-2">
+
                   <span className="h-2 w-2 animate-pulse rounded-full bg-red-400" />
 
                   <p className="font-semibold text-red-400">
                     Flood Emergency
                   </p>
+
                 </div>
+
               </div>
 
-          {/* Logout */}
-          <button
-             onClick={handleLogout}
-             className="rounded-xl bg-red-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-600"
-          >
-             Logout
-          </button>
             </div>
 
           </header>
 
-          {/* Search */}
-          <div className="mb-6 flex items-center rounded-xl border border-white/10 bg-[#0d1b2a] px-4 py-3">
+          {/* SEARCH */}
+          {activePage !== "Dashboard" && (
+            <div className="mb-6 flex items-center rounded-xl border border-white/10 bg-[#0d1b2a] px-4 py-3">
 
-            <Search size={18} className="text-gray-500" />
+              <Search
+                size={18}
+                className="text-gray-500"
+              />
 
-            <input
-              type="text"
-              placeholder="Search SOS requests, volunteers, shelters..."
-              className="ml-3 w-full bg-transparent text-sm text-white outline-none placeholder:text-gray-600"
-            />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) =>
+                  setSearchTerm(e.target.value)
+                }
+                placeholder={`Search ${activePage.toLowerCase()}...`}
+                className="ml-3 w-full bg-transparent text-sm text-white outline-none placeholder:text-gray-600"
+              />
 
-          </div>
-
-          {/* ================= STATISTICS ================= */}
-
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
-            {/* Total SOS */}
-            <div className="rounded-2xl border border-white/10 bg-[#0d1b2a] p-5">
-
-              <div className="flex items-center justify-between">
-
-                <p className="text-sm text-gray-400">
-                  Total SOS
-                </p>
-
-                <div className="rounded-lg bg-red-500/10 p-2">
-                  <Siren size={18} className="text-red-400" />
-                </div>
-
-              </div>
-
-              <h3 className="mt-4 text-3xl font-bold">
-                128
-              </h3>
-
-              <div className="mt-2 flex items-center gap-2">
-                <span className="text-sm text-red-400">
-                  +12
-                </span>
-
-                <span className="text-xs text-gray-500">
-                  today
-                </span>
-              </div>
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="text-gray-500 hover:text-white"
+                >
+                  <X size={16} />
+                </button>
+              )}
 
             </div>
+          )}
 
-            {/* Critical Cases */}
-            <div className="rounded-2xl border border-red-500/20 bg-[#0d1b2a] p-5">
+          {/* ================================================= */}
+          {/* DASHBOARD */}
+          {/* ================================================= */}
 
-              <div className="flex items-center justify-between">
+          {activePage === "Dashboard" && (
+            <>
 
-                <p className="text-sm text-gray-400">
-                  Critical Cases
-                </p>
+              {/* STATISTICS */}
+              <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
-                <div className="rounded-lg bg-red-500/10 p-2">
-                  <AlertTriangle size={18} className="text-red-400" />
-                </div>
+                <div className="rounded-2xl border border-white/10 bg-[#0d1b2a] p-5">
 
-              </div>
+                  <div className="flex items-center justify-between">
 
-              <h3 className="mt-4 text-3xl font-bold text-red-400">
-                23
-              </h3>
+                    <p className="text-sm text-gray-400">
+                      Total SOS
+                    </p>
 
-              <p className="mt-2 text-xs text-gray-500">
-                Need immediate action
-              </p>
+                    <div className="rounded-lg bg-red-500/10 p-2">
+                      <Siren
+                        size={18}
+                        className="text-red-400"
+                      />
+                    </div>
 
-            </div>
+                  </div>
 
-            {/* Volunteers */}
-            <div className="rounded-2xl border border-white/10 bg-[#0d1b2a] p-5">
-
-              <div className="flex items-center justify-between">
-
-                <p className="text-sm text-gray-400">
-                  Active Volunteers
-                </p>
-
-                <div className="rounded-lg bg-green-500/10 p-2">
-                  <Users size={18} className="text-green-400" />
-                </div>
-
-              </div>
-
-              <h3 className="mt-4 text-3xl font-bold">
-                67
-              </h3>
-
-              <div className="mt-2 flex items-center gap-2">
-                <span className="text-sm text-green-400">
-                  {availableVolunteers + 40}
-                </span>
-
-                <span className="text-xs text-gray-500">
-                  available
-                </span>
-              </div>
-
-            </div>
-
-            {/* Shelter */}
-            <div className="rounded-2xl border border-white/10 bg-[#0d1b2a] p-5">
-
-              <div className="flex items-center justify-between">
-
-                <p className="text-sm text-gray-400">
-                  Shelter Capacity
-                </p>
-
-                <div className="rounded-lg bg-yellow-500/10 p-2">
-                  <Building2 size={18} className="text-yellow-400" />
-                </div>
-
-              </div>
-
-              <h3 className="mt-4 text-3xl font-bold">
-                {shelterPercentage}%
-              </h3>
-
-              <p className="mt-2 text-xs text-yellow-400">
-                {totalCapacity - occupiedCapacity} spaces available
-              </p>
-
-            </div>
-
-          </section>
-
-          {/* ================= MAP + ALERTS ================= */}
-
-          <section className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
-
-            {/* Live Disaster Map */}
-            <div className="xl:col-span-2 rounded-2xl border border-white/10 bg-[#0d1b2a] p-5 sm:p-6">
-
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-                <div>
-                  <h3 className="text-xl font-semibold">
-                    Live Disaster Map
+                  <h3 className="mt-4 text-3xl font-bold">
+                    {sosRequests.length}
                   </h3>
 
-                  <p className="mt-1 text-sm text-gray-400">
-                    SOS requests and volunteer locations
+                  <p className="mt-2 text-sm text-red-400">
+                    Live from backend
                   </p>
+
                 </div>
 
-                <div className="flex gap-4 text-xs">
-                  <span className="text-red-400">
-                    ● Critical
-                  </span>
+                <div className="rounded-2xl border border-red-500/20 bg-[#0d1b2a] p-5">
 
-                  <span className="text-yellow-400">
-                    ● High
-                  </span>
+                  <div className="flex items-center justify-between">
 
-                  <span className="text-green-400">
-                    ● Volunteer
-                  </span>
-                </div>
+                    <p className="text-sm text-gray-400">
+                      Critical Cases
+                    </p>
 
-              </div>
+                    <div className="rounded-lg bg-red-500/10 p-2">
+                      <AlertTriangle
+                        size={18}
+                        className="text-red-400"
+                      />
+                    </div>
 
-              {/* Map */}
-              <div className="relative mt-6 h-[360px] overflow-hidden rounded-xl border border-white/5 bg-[#081522]">
-
-                {/* Grid */}
-                <div
-                  className="absolute inset-0 opacity-20"
-                  style={{
-                    backgroundImage:
-                      "linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)",
-                    backgroundSize: "40px 40px",
-                  }}
-                />
-
-                {/* River */}
-                <div className="absolute left-[45%] top-[-20px] h-[420px] w-16 rotate-[18deg] bg-blue-500/10 blur-sm" />
-
-                {/* Areas */}
-                <span className="absolute left-[18%] top-[22%] text-xs text-gray-500">
-                  Kothrud
-                </span>
-
-                <span className="absolute left-[66%] top-[17%] text-xs text-gray-500">
-                  Baner
-                </span>
-
-                <span className="absolute left-[28%] top-[69%] text-xs text-gray-500">
-                  Aundh
-                </span>
-
-                <span className="absolute left-[69%] top-[68%] text-xs text-gray-500">
-                  Shivajinagar
-                </span>
-
-                <span className="absolute left-[47%] top-[42%] text-xs text-gray-600">
-                  Deccan
-                </span>
-
-                {/* Critical Marker 1 */}
-                <div className="absolute left-[21%] top-[33%]">
-
-                  <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold shadow-lg shadow-red-500/40">
-                    SOS
-
-                    <div className="absolute inset-0 animate-ping rounded-full bg-red-500/30" />
                   </div>
 
+                  <h3 className="mt-4 text-3xl font-bold text-red-400">
+                    {criticalCount}
+                  </h3>
+
+                  <p className="mt-2 text-xs text-gray-500">
+                    Need immediate action
+                  </p>
+
                 </div>
 
-                {/* Critical Marker 2 */}
-                <div className="absolute left-[63%] top-[28%]">
+                <div className="rounded-2xl border border-white/10 bg-[#0d1b2a] p-5">
 
-                  <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold shadow-lg shadow-red-500/40">
-                    SOS
+                  <div className="flex items-center justify-between">
 
-                    <div className="absolute inset-0 animate-ping rounded-full bg-red-500/30" />
+                    <p className="text-sm text-gray-400">
+                      Active Volunteers
+                    </p>
+
+                    <div className="rounded-lg bg-green-500/10 p-2">
+                      <Users
+                        size={18}
+                        className="text-green-400"
+                      />
+                    </div>
+
                   </div>
 
+                  <h3 className="mt-4 text-3xl font-bold">
+                    {volunteers.length}
+                  </h3>
+
+                  <p className="mt-2 text-sm text-green-400">
+                    {availableVolunteers} available
+                  </p>
+
                 </div>
 
-                {/* High Priority */}
-                <div className="absolute left-[35%] top-[63%]">
+                <div className="rounded-2xl border border-white/10 bg-[#0d1b2a] p-5">
 
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-500 text-sm font-bold text-black shadow-lg shadow-yellow-500/20">
-                    !
+                  <div className="flex items-center justify-between">
+
+                    <p className="text-sm text-gray-400">
+                      Shelter Capacity
+                    </p>
+
+                    <div className="rounded-lg bg-yellow-500/10 p-2">
+                      <Building2
+                        size={18}
+                        className="text-yellow-400"
+                      />
+                    </div>
+
                   </div>
 
+                  <h3 className="mt-4 text-3xl font-bold">
+                    {shelterPercentage}%
+                  </h3>
+
+                  <p className="mt-2 text-xs text-yellow-400">
+                    {totalCapacity - occupiedCapacity} spaces available
+                  </p>
+
                 </div>
 
-                {/* Volunteer */}
-                <div className="absolute left-[54%] top-[48%]">
+              </section>
 
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-black shadow-lg shadow-green-500/20">
-                    V
+              {/* MAP + ALERTS */}
+              <section className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
+
+                {/* MAP */}
+                <div className="xl:col-span-2 rounded-2xl border border-white/10 bg-[#0d1b2a] p-6">
+
+                  <div className="flex items-center justify-between">
+
+                    <div>
+                      <h3 className="text-xl font-semibold">
+                        Live Disaster Map
+                      </h3>
+
+                      <p className="mt-1 text-sm text-gray-400">
+                        SOS requests and volunteer locations
+                      </p>
+                    </div>
+
+                    <div className="flex gap-4 text-xs">
+                      <span className="text-red-400">
+                        ● Critical
+                      </span>
+
+                      <span className="text-yellow-400">
+                        ● High
+                      </span>
+
+                      <span className="text-green-400">
+                        ● Volunteer
+                      </span>
+                    </div>
+
                   </div>
 
-                </div>
+                  <div className="relative mt-6 h-[360px] overflow-hidden rounded-xl border border-white/5 bg-[#081522]">
 
-                {/* Volunteer */}
-                <div className="absolute left-[76%] top-[57%]">
+                    {/* GRID */}
+                    <div
+                      className="absolute inset-0 opacity-20"
+                      style={{
+                        backgroundImage:
+                          "linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)",
+                        backgroundSize: "40px 40px",
+                      }}
+                    />
 
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-black shadow-lg shadow-green-500/20">
-                    V
-                  </div>
+                    {/* RIVER */}
+                    <div className="absolute left-[45%] top-[-20px] h-[420px] w-16 rotate-[18deg] bg-blue-500/10 blur-sm" />
 
-                </div>
-
-                {/* Live Status */}
-                <div className="absolute bottom-4 left-4 rounded-lg border border-white/10 bg-[#07111f]/90 px-4 py-2 backdrop-blur">
-
-                  <div className="flex items-center gap-2">
-
-                    <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
-
-                    <span className="text-xs text-gray-300">
-                      Live monitoring active
+                    {/* LOCATIONS */}
+                    <span className="absolute left-[18%] top-[22%] text-xs text-gray-500">
+                      Kothrud
                     </span>
 
+                    <span className="absolute left-[66%] top-[17%] text-xs text-gray-500">
+                      Baner
+                    </span>
+
+                    <span className="absolute left-[28%] top-[69%] text-xs text-gray-500">
+                      Aundh
+                    </span>
+
+                    <span className="absolute left-[69%] top-[68%] text-xs text-gray-500">
+                      Shivajinagar
+                    </span>
+
+                    <span className="absolute left-[47%] top-[42%] text-xs text-gray-600">
+                      Deccan
+                    </span>
+
+                    {/* SOS */}
+                    <div className="absolute left-[21%] top-[33%]">
+
+                      <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold shadow-lg shadow-red-500/40">
+
+                        SOS
+
+                        <div className="absolute inset-0 animate-ping rounded-full bg-red-500/30" />
+
+                      </div>
+
+                    </div>
+
+                    <div className="absolute left-[63%] top-[28%]">
+
+                      <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold shadow-lg shadow-red-500/40">
+
+                        SOS
+
+                        <div className="absolute inset-0 animate-ping rounded-full bg-red-500/30" />
+
+                      </div>
+
+                    </div>
+
+                    {/* HIGH */}
+                    <div className="absolute left-[35%] top-[63%]">
+
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-500 text-sm font-bold text-black">
+                        !
+                      </div>
+
+                    </div>
+
+                    {/* VOLUNTEERS */}
+                    <div className="absolute left-[54%] top-[48%]">
+
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-black">
+                        V
+                      </div>
+
+                    </div>
+
+                    <div className="absolute left-[76%] top-[57%]">
+
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-black">
+                        V
+                      </div>
+
+                    </div>
+
+                    {/* LIVE */}
+                    <div className="absolute bottom-4 left-4 rounded-lg border border-white/10 bg-[#07111f]/90 px-4 py-2">
+
+                      <div className="flex items-center gap-2">
+
+                        <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+
+                        <span className="text-xs text-gray-300">
+                          Live monitoring active
+                        </span>
+
+                      </div>
+
+                    </div>
+
                   </div>
 
                 </div>
 
-                {/* Map Controls */}
-                <div className="absolute right-4 top-4 flex flex-col overflow-hidden rounded-lg border border-white/10 bg-[#07111f]/90">
+                {/* ALERTS */}
+                <div className="rounded-2xl border border-white/10 bg-[#0d1b2a] p-6">
 
-                  <button className="px-3 py-2 text-lg text-gray-400 hover:bg-white/5 hover:text-white">
-                    +
-                  </button>
-
-                  <div className="border-t border-white/10" />
-
-                  <button className="px-3 py-2 text-lg text-gray-400 hover:bg-white/5 hover:text-white">
-                    −
-                  </button>
-
-                </div>
-
-              </div>
-
-            </div>
-
-            {/* Emergency Alerts */}
-            <div className="rounded-2xl border border-white/10 bg-[#0d1b2a] p-5 sm:p-6">
-
-              <div className="flex items-center justify-between">
-
-                <div>
                   <h3 className="text-xl font-semibold">
                     Emergency Alerts
                   </h3>
@@ -674,257 +929,330 @@ function handleLogout() {
                   <p className="mt-1 text-xs text-gray-500">
                     Latest system notifications
                   </p>
+
+                  <div className="mt-6 space-y-3">
+
+                    {notifications.map(
+                      (notification, index) => {
+
+                        const Icon =
+                          notification.icon;
+
+                        return (
+                          <div
+                            key={index}
+                            className="rounded-xl border border-white/5 bg-white/[0.02] p-4"
+                          >
+
+                            <div className="flex gap-3">
+
+                              <Icon
+                                size={18}
+                                className={
+                                  notification.type ===
+                                  "critical"
+                                    ? "text-red-400"
+                                    : notification.type ===
+                                        "warning"
+                                      ? "text-yellow-400"
+                                      : "text-blue-400"
+                                }
+                              />
+
+                              <div>
+
+                                <p className="text-sm font-medium">
+                                  {notification.title}
+                                </p>
+
+                                <p className="mt-1 text-xs text-gray-500">
+                                  {notification.location}
+                                </p>
+
+                                <p className="mt-1 text-[10px] text-gray-600">
+                                  {notification.time}
+                                </p>
+
+                              </div>
+
+                            </div>
+
+                          </div>
+                        );
+                      }
+                    )}
+
+                  </div>
+
                 </div>
 
-                <Bell size={19} className="text-gray-500" />
+              </section>
+
+              {/* PRIORITY SOS */}
+              <section className="mt-6 rounded-2xl border border-white/10 bg-[#0d1b2a] p-6">
+
+                <div className="flex items-center justify-between">
+
+                  <div>
+                    <h3 className="text-xl font-semibold">
+                      Priority SOS Requests
+                    </h3>
+
+                    <p className="mt-1 text-sm text-gray-400">
+                      Requests requiring immediate attention
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() =>
+                      handleNavigation("SOS Requests")
+                    }
+                    className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium hover:bg-red-600"
+                  >
+                    View All
+                    <ChevronRight size={16} />
+                  </button>
+
+                </div>
+
+                <div className="mt-6 overflow-x-auto rounded-xl border border-white/10">
+
+                  <table className="w-full min-w-[750px] text-left">
+
+                    <thead className="bg-white/5 text-xs uppercase tracking-wider text-gray-500">
+
+                      <tr>
+                        <th className="px-5 py-4">
+                          Priority
+                        </th>
+
+                        <th className="px-5 py-4">
+                          Request
+                        </th>
+
+                        <th className="px-5 py-4">
+                          Location
+                        </th>
+
+                        <th className="px-5 py-4">
+                          People
+                        </th>
+
+                        <th className="px-5 py-4">
+                          Status
+                        </th>
+
+                        <th className="px-5 py-4">
+                          Action
+                        </th>
+                      </tr>
+
+                    </thead>
+
+                    <tbody className="divide-y divide-white/10">
+
+                      {sosRequests.slice(0, 4).map(
+                        (request) => (
+                          <tr
+                            key={request.id}
+                            className="hover:bg-white/[0.025]"
+                          >
+
+                            <td className="px-5 py-4">
+                              <PriorityBadge
+                                priority={
+                                  request.priority
+                                }
+                              />
+                            </td>
+
+                            <td className="px-5 py-4">
+
+                              <p className="font-medium">
+                                {request.request}
+                              </p>
+
+                              <p className="mt-1 text-xs text-gray-600">
+                                {request.id}
+                              </p>
+
+                            </td>
+
+                            <td className="px-5 py-4">
+
+                              <div className="flex items-center gap-2 text-gray-400">
+                                <MapPin size={14} />
+                                {request.location}
+                              </div>
+
+                            </td>
+
+                            <td className="px-5 py-4">
+                              {request.people}
+                            </td>
+
+                            <td className="px-5 py-4">
+                              <StatusBadge
+                                status={
+                                  request.status
+                                }
+                              />
+                            </td>
+
+                            <td className="px-5 py-4">
+
+                              <button
+                                onClick={() =>
+                                  setSelectedRequest(
+                                    request
+                                  )
+                                }
+                                className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:bg-white/5 hover:text-white"
+                              >
+                                Details
+                              </button>
+
+                            </td>
+
+                          </tr>
+                        )
+                      )}
+
+                    </tbody>
+
+                  </table>
+
+                </div>
+
+              </section>
+
+            </>
+          )}
+
+          {/* ================================================= */}
+          {/* SOS REQUESTS */}
+          {/* ================================================= */}
+
+          {activePage === "SOS Requests" && (
+            <section className="rounded-2xl border border-white/10 bg-[#0d1b2a] p-6">
+
+              <div className="mb-6 flex items-center justify-between">
+
+                <div>
+                  <h3 className="text-xl font-semibold">
+                    All SOS Requests
+                  </h3>
+
+                  <p className="mt-1 text-sm text-gray-400">
+                    Monitor and manage incoming emergency requests
+                  </p>
+                </div>
+
+                <div className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
+                  {filteredSOS.length} requests
+                </div>
 
               </div>
 
-              <div className="mt-6 space-y-3">
-
-                <div className="rounded-xl border border-red-500/10 bg-red-500/10 p-4">
-
-                  <div className="flex items-start gap-3">
-
-                    <AlertTriangle
-                      size={18}
-                      className="mt-0.5 text-red-400"
-                    />
-
-                    <div>
-                      <p className="font-medium text-red-400">
-                        Critical SOS detected
-                      </p>
-
-                      <p className="mt-1 text-xs text-gray-400">
-                        Kothrud · 2 min ago
-                      </p>
-                    </div>
-
-                  </div>
-
-                </div>
-
-                <div className="rounded-xl border border-yellow-500/10 bg-yellow-500/10 p-4">
-
-                  <div className="flex items-start gap-3">
-
-                    <Building2
-                      size={18}
-                      className="mt-0.5 text-yellow-400"
-                    />
-
-                    <div>
-                      <p className="font-medium text-yellow-400">
-                        Shelter nearing capacity
-                      </p>
-
-                      <p className="mt-1 text-xs text-gray-400">
-                        Shelter B · 5 min ago
-                      </p>
-                    </div>
-
-                  </div>
-
-                </div>
-
-                <div className="rounded-xl border border-orange-500/10 bg-orange-500/10 p-4">
-
-                  <div className="flex items-start gap-3">
-
-                    <Package
-                      size={18}
-                      className="mt-0.5 text-orange-400"
-                    />
-
-                    <div>
-                      <p className="font-medium text-orange-400">
-                        Medical supplies low
-                      </p>
-
-                      <p className="mt-1 text-xs text-gray-400">
-                        Shelter C · 8 min ago
-                      </p>
-                    </div>
-
-                  </div>
-
-                </div>
-
-                <div className="rounded-xl border border-blue-500/10 bg-blue-500/10 p-4">
-
-                  <div className="flex items-start gap-3">
-
-                    <Radio
-                      size={18}
-                      className="mt-0.5 text-blue-400"
-                    />
-
-                    <div>
-                      <p className="font-medium text-blue-400">
-                        Response team deployed
-                      </p>
-
-                      <p className="mt-1 text-xs text-gray-400">
-                        Baner · 12 min ago
-                      </p>
-                    </div>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </section>
-
-          {/* ================= SOS TABLE ================= */}
-
-          <section className="mt-6 rounded-2xl border border-white/10 bg-[#0d1b2a] p-5 sm:p-6">
-
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-              <div>
-                <h3 className="text-xl font-semibold">
-                  Priority SOS Requests
-                </h3>
-
-                <p className="mt-1 text-sm text-gray-400">
-                  Requests requiring immediate attention
-                </p>
-              </div>
-
-              <button
-                onClick={() => handleNavigation("SOS Requests")}
-                className="flex items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium transition hover:bg-red-600"
-              >
-                View All
-                <ChevronRight size={16} />
-              </button>
-
-            </div>
-
-            <div className="mt-6 overflow-x-auto rounded-xl border border-white/10">
-
-              <table className="w-full min-w-[750px] text-left">
-
-                <thead className="bg-white/5 text-xs uppercase tracking-wider text-gray-500">
-
-                  <tr>
-                    <th className="px-5 py-4">Priority</th>
-                    <th className="px-5 py-4">Request</th>
-                    <th className="px-5 py-4">Location</th>
-                    <th className="px-5 py-4">People</th>
-                    <th className="px-5 py-4">Time</th>
-                    <th className="px-5 py-4">Status</th>
-                    <th className="px-5 py-4">Action</th>
-                  </tr>
-
-                </thead>
-
-                <tbody className="divide-y divide-white/10">
-
-                  {sosRequests.slice(0, 4).map((request) => (
-
-                    <tr
-                      key={request.id}
-                      className="transition hover:bg-white/[0.025]"
-                    >
-
-                      <td className="px-5 py-4">
-
-                        <span
-                          className={`rounded-md px-2 py-1 text-[10px] font-bold ${
-                            request.priority === "CRITICAL"
-                              ? "bg-red-500/10 text-red-400"
-                              : request.priority === "HIGH"
-                              ? "bg-yellow-500/10 text-yellow-400"
-                              : "bg-blue-500/10 text-blue-400"
-                          }`}
-                        >
-                          {request.priority}
-                        </span>
-
-                      </td>
-
-                      <td className="px-5 py-4">
-
-                        <p className="font-medium">
-                          {request.request}
-                        </p>
-
-                        <p className="mt-1 text-xs text-gray-600">
-                          {request.id}
-                        </p>
-
-                      </td>
-
-                      <td className="px-5 py-4">
-
-                        <div className="flex items-center gap-2 text-gray-400">
-                          <MapPin size={14} />
-                          {request.location}
-                        </div>
-
-                      </td>
-
-                      <td className="px-5 py-4">
-                        {request.people}
-                      </td>
-
-                      <td className="px-5 py-4 text-xs text-gray-500">
-                        {request.time}
-                      </td>
-
-                      <td className="px-5 py-4">
-
-                        <span
-                          className={`text-sm ${
-                            request.status === "Assigned"
-                              ? "text-green-400"
-                              : request.status === "Unassigned"
-                              ? "text-red-400"
-                              : "text-yellow-400"
-                          }`}
-                        >
-                          {request.status}
-                        </span>
-
-                      </td>
-
-                      <td className="px-5 py-4">
-
-                        <button
-                          onClick={() => setSelectedRequest(request)}
-                          className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:bg-white/5 hover:text-white"
-                        >
-                          Details
-                        </button>
-
-                      </td>
-
+              <div className="overflow-x-auto rounded-xl border border-white/10">
+
+                <table className="w-full min-w-[900px] text-left">
+
+                  <thead className="bg-white/5 text-xs uppercase tracking-wider text-gray-500">
+
+                    <tr>
+                      <th className="px-5 py-4">ID</th>
+                      <th className="px-5 py-4">Priority</th>
+                      <th className="px-5 py-4">Request</th>
+                      <th className="px-5 py-4">Location</th>
+                      <th className="px-5 py-4">People</th>
+                      <th className="px-5 py-4">Time</th>
+                      <th className="px-5 py-4">Status</th>
+                      <th className="px-5 py-4">Action</th>
                     </tr>
 
-                  ))}
+                  </thead>
 
-                </tbody>
+                  <tbody className="divide-y divide-white/10">
 
-              </table>
+                    {filteredSOS.map((request) => (
+                      <tr
+                        key={request.id}
+                        className="hover:bg-white/[0.025]"
+                      >
 
-            </div>
+                        <td className="px-5 py-4 text-xs text-gray-500">
+                          {request.id}
+                        </td>
 
-          </section>
+                        <td className="px-5 py-4">
+                          <PriorityBadge
+                            priority={request.priority}
+                          />
+                        </td>
 
-          {/* ================= LOWER DASHBOARD ================= */}
+                        <td className="px-5 py-4 font-medium">
+                          {request.request}
+                        </td>
 
-          <section className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+                        <td className="px-5 py-4">
 
-            {/* Volunteers */}
-            <div className="rounded-2xl border border-white/10 bg-[#0d1b2a] p-5 sm:p-6">
+                          <div className="flex items-center gap-2 text-gray-400">
+                            <MapPin size={14} />
+                            {request.location}
+                          </div>
 
-              <div className="flex items-center justify-between">
+                        </td>
+
+                        <td className="px-5 py-4">
+                          {request.people}
+                        </td>
+
+                        <td className="px-5 py-4 text-xs text-gray-500">
+                          {request.time}
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <StatusBadge
+                            status={request.status}
+                          />
+                        </td>
+
+                        <td className="px-5 py-4">
+
+                          <button
+                            onClick={() =>
+                              setSelectedRequest(
+                                request
+                              )
+                            }
+                            className="rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:bg-white/5 hover:text-white"
+                          >
+                            View Details
+                          </button>
+
+                        </td>
+
+                      </tr>
+                    ))}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+            </section>
+          )}
+
+          {/* ================================================= */}
+          {/* VOLUNTEERS */}
+          {/* ================================================= */}
+
+          {activePage === "Volunteers" && (
+            <section className="rounded-2xl border border-white/10 bg-[#0d1b2a] p-6">
+
+              <div className="mb-6 flex items-center justify-between">
 
                 <div>
                   <h3 className="text-xl font-semibold">
@@ -932,224 +1260,370 @@ function handleLogout() {
                   </h3>
 
                   <p className="mt-1 text-sm text-gray-400">
-                    Current response team status
+                    Monitor available and deployed response teams
                   </p>
                 </div>
 
-                <Users size={20} className="text-gray-500" />
+                <Users
+                  size={22}
+                  className="text-green-400"
+                />
 
               </div>
 
-              <div className="mt-5 space-y-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-                {volunteers.map((volunteer) => (
+                {filteredVolunteers.map(
+                  (volunteer) => (
+                    <div
+                      key={volunteer.name}
+                      className="rounded-xl border border-white/10 bg-white/[0.02] p-5"
+                    >
 
-                  <div
-                    key={volunteer.name}
-                    className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4"
-                  >
+                      <div className="flex items-start justify-between">
 
-                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3">
 
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-500/10">
-                        <UserRound
-                          size={17}
-                          className="text-green-400"
-                        />
-                      </div>
+                          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-green-500/10">
 
-                      <div>
-                        <p className="text-sm font-medium">
-                          {volunteer.name}
-                        </p>
+                            <UserRound
+                              size={20}
+                              className="text-green-400"
+                            />
 
-                        <div className="mt-1 flex items-center gap-1 text-xs text-gray-500">
-                          <MapPin size={11} />
-                          {volunteer.location}
+                          </div>
+
+                          <div>
+
+                            <p className="font-medium">
+                              {volunteer.name}
+                            </p>
+
+                            <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                              <MapPin size={11} />
+                              {volunteer.location}
+                            </p>
+
+                          </div>
+
                         </div>
+
+                        <StatusBadge
+                          status={volunteer.status}
+                        />
+
                       </div>
 
+                      <div className="mt-5 grid grid-cols-2 gap-3">
+
+                        <div className="rounded-lg bg-white/[0.03] p-3">
+
+                          <p className="text-[10px] text-gray-600">
+                            CURRENT TASK
+                          </p>
+
+                          <p className="mt-1 text-sm">
+                            {volunteer.task}
+                          </p>
+
+                        </div>
+
+                        <div className="rounded-lg bg-white/[0.03] p-3">
+
+                          <p className="text-[10px] text-gray-600">
+                            CONTACT
+                          </p>
+
+                          <p className="mt-1 text-sm">
+                            {volunteer.phone}
+                          </p>
+
+                        </div>
+
+                      </div>
+
+                      <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 py-2 text-xs text-gray-400 hover:bg-white/5 hover:text-white">
+                        <MapPin size={14} />
+                        View Location
+                      </button>
+
                     </div>
-
-                    <div className="text-right">
-
-                      <span
-                        className={`text-xs ${
-                          volunteer.status === "Available"
-                            ? "text-green-400"
-                            : "text-yellow-400"
-                        }`}
-                      >
-                        {volunteer.status}
-                      </span>
-
-                      {volunteer.task !== "None" && (
-                        <p className="mt-1 text-[10px] text-gray-600">
-                          {volunteer.task}
-                        </p>
-                      )}
-
-                    </div>
-
-                  </div>
-
-                ))}
+                  )
+                )}
 
               </div>
 
-            </div>
+            </section>
+          )}
 
-            {/* Shelters */}
-            <div className="rounded-2xl border border-white/10 bg-[#0d1b2a] p-5 sm:p-6">
+          {/* ================================================= */}
+          {/* SHELTERS */}
+          {/* ================================================= */}
 
-              <div className="flex items-center justify-between">
+          {activePage === "Shelters" && (
+            <section className="rounded-2xl border border-white/10 bg-[#0d1b2a] p-6">
+
+              <div className="mb-6 flex items-center justify-between">
 
                 <div>
                   <h3 className="text-xl font-semibold">
-                    Shelter Capacity
+                    Shelter Management
                   </h3>
 
                   <p className="mt-1 text-sm text-gray-400">
-                    Current occupancy across shelters
+                    Monitor shelter occupancy and availability
                   </p>
                 </div>
 
-                <Building2 size={20} className="text-gray-500" />
+                <Building2
+                  size={22}
+                  className="text-yellow-400"
+                />
 
               </div>
 
-              <div className="mt-5 space-y-5">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
 
-                {shelters.map((shelter) => {
+                {filteredShelters.map(
+                  (shelter) => {
 
-                  const percentage = Math.round(
-                    (shelter.occupied / shelter.capacity) * 100
-                  );
+                    const percentage =
+                      Math.round(
+                        (shelter.occupied /
+                          shelter.capacity) *
+                          100
+                      );
 
-                  return (
-                    <div key={shelter.name}>
+                    const available =
+                      shelter.capacity -
+                      shelter.occupied;
 
-                      <div className="mb-2 flex items-center justify-between">
+                    return (
+                      <div
+                        key={shelter.name}
+                        className="rounded-xl border border-white/10 bg-white/[0.02] p-5"
+                      >
 
-                        <div>
-                          <p className="text-sm font-medium">
-                            {shelter.name}
-                          </p>
+                        <div className="flex items-start justify-between">
 
-                          <p className="text-xs text-gray-600">
-                            {shelter.location}
-                          </p>
+                          <div>
+
+                            <h4 className="font-semibold">
+                              {shelter.name}
+                            </h4>
+
+                            <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                              <MapPin size={11} />
+                              {shelter.location}
+                            </p>
+
+                          </div>
+
+                          <StatusBadge
+                            status={
+                              shelter.status
+                            }
+                          />
+
                         </div>
 
-                        <span
-                          className={`text-xs ${
-                            percentage >= 85
-                              ? "text-yellow-400"
-                              : "text-green-400"
-                          }`}
-                        >
-                          {shelter.occupied}/{shelter.capacity}
-                        </span>
+                        <div className="mt-6">
+
+                          <div className="mb-2 flex items-center justify-between">
+
+                            <span className="text-xs text-gray-500">
+                              Occupancy
+                            </span>
+
+                            <span className="text-sm font-medium">
+                              {percentage}%
+                            </span>
+
+                          </div>
+
+                          <div className="h-3 overflow-hidden rounded-full bg-white/5">
+
+                            <div
+                              className={`h-full rounded-full ${
+                                percentage >= 85
+                                  ? "bg-yellow-500"
+                                  : "bg-green-500"
+                              }`}
+                              style={{
+                                width: `${percentage}%`,
+                              }}
+                            />
+
+                          </div>
+
+                        </div>
+
+                        <div className="mt-5 grid grid-cols-2 gap-3">
+
+                          <div className="rounded-lg bg-white/[0.03] p-3">
+
+                            <p className="text-[10px] text-gray-600">
+                              OCCUPIED
+                            </p>
+
+                            <p className="mt-1 text-lg font-semibold">
+                              {shelter.occupied}
+                            </p>
+
+                          </div>
+
+                          <div className="rounded-lg bg-white/[0.03] p-3">
+
+                            <p className="text-[10px] text-gray-600">
+                              AVAILABLE
+                            </p>
+
+                            <p className="mt-1 text-lg font-semibold text-green-400">
+                              {available}
+                            </p>
+
+                          </div>
+
+                        </div>
 
                       </div>
-
-                      <div className="h-2 overflow-hidden rounded-full bg-white/5">
-
-                        <div
-                          className={`h-full rounded-full ${
-                            percentage >= 85
-                              ? "bg-yellow-500"
-                              : "bg-green-500"
-                          }`}
-                          style={{
-                            width: `${percentage}%`,
-                          }}
-                        />
-
-                      </div>
-
-                    </div>
-                  );
-                })}
+                    );
+                  }
+                )}
 
               </div>
 
-            </div>
+            </section>
+          )}
 
-          </section>
+          {/* ================================================= */}
+          {/* RESOURCES */}
+          {/* ================================================= */}
 
-          {/* ================= RESOURCE TRACKER ================= */}
+          {activePage === "Resources" && (
+            <section className="rounded-2xl border border-white/10 bg-[#0d1b2a] p-6">
 
-          <section className="mt-6 rounded-2xl border border-white/10 bg-[#0d1b2a] p-5 sm:p-6">
+              <div className="mb-6 flex items-center justify-between">
 
-            <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold">
+                    Resource Management
+                  </h3>
 
-              <div>
-                <h3 className="text-xl font-semibold">
-                  Resource Tracker
-                </h3>
+                  <p className="mt-1 text-sm text-gray-400">
+                    Track emergency supplies across response locations
+                  </p>
+                </div>
 
-                <p className="mt-1 text-sm text-gray-400">
-                  Current emergency supply levels
-                </p>
+                <Package
+                  size={22}
+                  className="text-blue-400"
+                />
+
               </div>
 
-              <Package size={20} className="text-gray-500" />
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
 
-            </div>
+                {filteredResources.map(
+                  (resource) => {
 
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    const Icon = resource.icon;
 
-              {resources.map((resource) => {
-
-                const Icon = resource.icon;
-
-                return (
-                  <div
-                    key={resource.id}
-                    className="rounded-xl border border-white/5 bg-white/[0.02] p-5"
-                  >
-
-                    <div className="flex items-center justify-between">
-
-                      <div className="rounded-lg bg-blue-500/10 p-2.5">
-                        <Icon
-                          size={19}
-                          className="text-blue-400"
-                        />
-                      </div>
-
-                      <span
-                        className={`text-xs ${
-                          resource.status === "Low"
-                            ? "text-red-400"
-                            : resource.status === "Moderate"
-                            ? "text-yellow-400"
-                            : "text-green-400"
-                        }`}
+                    return (
+                      <div
+                        key={resource.name}
+                        className="rounded-xl border border-white/10 bg-white/[0.02] p-5"
                       >
-                        {resource.status}
-                      </span>
 
-                    </div>
+                        <div className="flex items-center justify-between">
 
-                    <p className="mt-5 text-sm text-gray-400">
-                      {resource.name}
-                    </p>
+                          <div className="rounded-lg bg-blue-500/10 p-3">
 
-                    <p className="mt-1 text-2xl font-bold">
-                      {resource.quantity}
-                    </p>
+                            <Icon
+                              size={21}
+                              className="text-blue-400"
+                            />
 
-                  </div>
-                );
-              })}
+                          </div>
 
-            </div>
+                          <StatusBadge
+                            status={
+                              resource.status
+                            }
+                          />
 
-          </section>
+                        </div>
 
-          {/* Footer */}
+                        <p className="mt-5 text-sm text-gray-400">
+                          {resource.name}
+                        </p>
+
+                        <p className="mt-1 text-3xl font-bold">
+                          {resource.quantity}
+                        </p>
+
+                        <div className="mt-5">
+
+                          <div className="mb-2 flex justify-between">
+
+                            <span className="text-xs text-gray-600">
+                              Stock level
+                            </span>
+
+                            <span className="text-xs text-gray-500">
+                              {resource.percentage}%
+                            </span>
+
+                          </div>
+
+                          <div className="h-2 overflow-hidden rounded-full bg-white/5">
+
+                            <div
+                              className={`h-full rounded-full ${
+                                resource.status ===
+                                "Low"
+                                  ? "bg-red-500"
+                                  : resource.status ===
+                                      "Moderate"
+                                    ? "bg-yellow-500"
+                                    : "bg-green-500"
+                              }`}
+                              style={{
+                                width: `${resource.percentage}%`,
+                              }}
+                            />
+
+                          </div>
+
+                        </div>
+
+                        {resource.status ===
+                          "Low" && (
+                          <div className="mt-4 flex items-center gap-2 rounded-lg bg-red-500/10 px-3 py-2">
+
+                            <AlertTriangle
+                              size={14}
+                              className="text-red-400"
+                            />
+
+                            <span className="text-xs text-red-400">
+                              Restock required
+                            </span>
+
+                          </div>
+                        )}
+
+                      </div>
+                    );
+                  }
+                )}
+
+              </div>
+
+            </section>
+          )}
+
+          {/* FOOTER */}
           <footer className="mt-8 flex flex-col gap-2 border-t border-white/5 pt-5 text-xs text-gray-600 sm:flex-row sm:items-center sm:justify-between">
 
             <p>
@@ -1157,10 +1631,15 @@ function handleLogout() {
             </p>
 
             <div className="flex items-center gap-2">
+
               <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+
               All systems operational
+
               <span>•</span>
+
               Last updated just now
+
             </div>
 
           </footer>
@@ -1169,10 +1648,11 @@ function handleLogout() {
 
       </main>
 
-      {/* ================= REQUEST DETAILS MODAL ================= */}
+      {/* ================================================= */}
+      {/* SOS DETAILS MODAL */}
+      {/* ================================================= */}
 
       {selectedRequest && (
-
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-5 backdrop-blur-sm">
 
           <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0d1b2a] p-6 shadow-2xl">
@@ -1180,6 +1660,7 @@ function handleLogout() {
             <div className="flex items-start justify-between">
 
               <div>
+
                 <p className="text-xs text-gray-500">
                   {selectedRequest.id}
                 </p>
@@ -1187,10 +1668,13 @@ function handleLogout() {
                 <h3 className="mt-1 text-xl font-semibold">
                   SOS Request Details
                 </h3>
+
               </div>
 
               <button
-                onClick={() => setSelectedRequest(null)}
+                onClick={() =>
+                  setSelectedRequest(null)
+                }
                 className="rounded-lg p-2 text-gray-500 hover:bg-white/5 hover:text-white"
               >
                 <X size={18} />
@@ -1206,15 +1690,20 @@ function handleLogout() {
                   PRIORITY
                 </p>
 
-                <p className="mt-1 font-semibold text-red-400">
-                  {selectedRequest.priority}
-                </p>
+                <div className="mt-2">
+                  <PriorityBadge
+                    priority={
+                      selectedRequest.priority
+                    }
+                  />
+                </div>
 
               </div>
 
               <div className="grid grid-cols-2 gap-4">
 
                 <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+
                   <p className="text-xs text-gray-500">
                     REQUEST
                   </p>
@@ -1222,9 +1711,11 @@ function handleLogout() {
                   <p className="mt-1 text-sm font-medium">
                     {selectedRequest.request}
                   </p>
+
                 </div>
 
                 <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+
                   <p className="text-xs text-gray-500">
                     PEOPLE
                   </p>
@@ -1232,9 +1723,11 @@ function handleLogout() {
                   <p className="mt-1 text-sm font-medium">
                     {selectedRequest.people}
                   </p>
+
                 </div>
 
                 <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+
                   <p className="text-xs text-gray-500">
                     LOCATION
                   </p>
@@ -1243,16 +1736,36 @@ function handleLogout() {
                     <MapPin size={14} />
                     {selectedRequest.location}
                   </p>
+
                 </div>
 
                 <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+
                   <p className="text-xs text-gray-500">
-                    STATUS
+                    TIME
                   </p>
 
-                  <p className="mt-1 text-sm font-medium text-yellow-400">
-                    {selectedRequest.status}
+                  <p className="mt-1 flex items-center gap-1 text-sm font-medium">
+                    <Clock size={14} />
+                    {selectedRequest.time}
                   </p>
+
+                </div>
+
+              </div>
+
+              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+
+                <p className="text-xs text-gray-500">
+                  CURRENT STATUS
+                </p>
+
+                <div className="mt-2">
+                  <StatusBadge
+                    status={
+                      selectedRequest.status
+                    }
+                  />
                 </div>
 
               </div>
@@ -1260,17 +1773,24 @@ function handleLogout() {
               <div className="flex gap-3 pt-2">
 
                 <button
-                  onClick={() => setSelectedRequest(null)}
+                  onClick={() =>
+                    setSelectedRequest(null)
+                  }
                   className="flex-1 rounded-xl border border-white/10 px-4 py-3 text-sm text-gray-400 hover:bg-white/5 hover:text-white"
                 >
                   Close
                 </button>
 
                 <button
-                  onClick={() => setSelectedRequest(null)}
+                  onClick={() =>
+                    setSelectedRequest(null)
+                  }
                   className="flex-1 rounded-xl bg-red-500 px-4 py-3 text-sm font-medium hover:bg-red-600"
                 >
-                  Assign Response Team
+                  <span className="flex items-center justify-center gap-2">
+                    <Truck size={16} />
+                    Assign Response Team
+                  </span>
                 </button>
 
               </div>
@@ -1280,7 +1800,6 @@ function handleLogout() {
           </div>
 
         </div>
-
       )}
 
     </div>
