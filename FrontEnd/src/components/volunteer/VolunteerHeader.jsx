@@ -1,6 +1,6 @@
 import { ShieldCheck } from "lucide-react";
 
-export default function VolunteerHeader() {
+export default function VolunteerHeader({ isAvailable }) {
   return (
     <section className="mb-12">
 
@@ -36,8 +36,8 @@ export default function VolunteerHeader() {
               Volunteer Status
             </p>
 
-            <h3 className="section-title text-xl text-success">
-              Available
+            <h3 className={`section-title text-xl ${isAvailable ? "text-success" : "text-warning"}`}>
+              {isAvailable ? "Available" : "On Mission"}
             </h3>
 
           </div>

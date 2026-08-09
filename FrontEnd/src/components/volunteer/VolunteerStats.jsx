@@ -5,34 +5,34 @@ import {
   Timer,
 } from "lucide-react";
 
-const stats = [
-  {
-    title: "Nearby Requests",
-    value: "08",
-    icon: TriangleAlert,
-    color: "text-danger",
-  },
-  {
-    title: "Volunteers Online",
-    value: "124",
-    icon: Users,
-    color: "text-brand",
-  },
-  {
-    title: "Completed Today",
-    value: "37",
-    icon: CheckCircle2,
-    color: "text-success",
-  },
-  {
-    title: "Average Response",
-    value: "4 min",
-    icon: Timer,
-    color: "text-warning",
-  },
-];
+export default function VolunteerStats({ values }) {
+  const stats = [
+    {
+      title: "Nearby Requests",
+      value: values.nearbyRequests,
+      icon: TriangleAlert,
+      color: "text-danger",
+    },
+    {
+      title: "Volunteers Online",
+      value: values.volunteersOnline,
+      icon: Users,
+      color: "text-brand",
+    },
+    {
+      title: "Completed Today",
+      value: values.completedToday,
+      icon: CheckCircle2,
+      color: "text-success",
+    },
+    {
+      title: "Average Response",
+      value: values.avgResponse,
+      icon: Timer,
+      color: "text-warning",
+    },
+  ];
 
-export default function VolunteerStats() {
   return (
     <section className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
 

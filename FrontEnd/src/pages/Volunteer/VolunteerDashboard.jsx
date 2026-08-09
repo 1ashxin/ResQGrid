@@ -18,15 +18,18 @@ import {
 
 import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../../context/NotificationContext";
-import { listSOSRequests, assignVolunteer, updateSOSStatus } from "../../api/client";
+import { listSOSRequests, listVolunteers, assignVolunteer, updateSOSStatus } from "../../api/client";
 import { updateVolunteerLocation } from "../../services/api";
-import { transformSOSRequest } from "../../utils/sos";
+import { transformSOSRequest, haversineKm } from "../../utils/sos";
 
 export default function VolunteerDashboard() {
   const { user } = useAuth();
   const { showToast } = useNotification();
   const [requests, setRequests] = useState([]);
+  const [allRequests, setAllRequests] = useState([]);
+  const [volunteers, setVolunteers] = useState([]);
   const [activeMission, setActiveMission] = useState(null);
+  const [myPosition, setMyPosition] = useState(null);
 
   const isVolunteer = !!user && user.role === "volunteer";
 
@@ -35,14 +38,17 @@ export default function VolunteerDashboard() {
 
     let cancelled = false;
 
-    async function loadPendingRequests(isInitialLoad) {
+    async function loadDashboardData(isInitialLoad) {
       try {
-        const rawSOS = await listSOSRequests();
+        const [rawSOS, rawVolunteers] = await Promise.all([
+          listSOSRequests(),
+          listVolunteers(),
+        ]);
         if (cancelled) return;
-        const pending = rawSOS
-          .map(transformSOSRequest)
-          .filter((sos) => sos.rawStatus === "pending");
-        setRequests(pending);
+        const transformed = rawSOS.map(transformSOSRequest);
+        setAllRequests(transformed);
+        setRequests(transformed.filter((sos) => sos.rawStatus === "pending"));
+        setVolunteers(rawVolunteers);
       } catch {
         if (!cancelled && isInitialLoad) {
           showToast("Couldn't load requests from the backend. Is it running?", "error");
@@ -50,8 +56,8 @@ export default function VolunteerDashboard() {
       }
     }
 
-    loadPendingRequests(true);
-    const interval = setInterval(() => loadPendingRequests(false), 15000);
+    loadDashboardData(true);
+    const interval = setInterval(() => loadDashboardData(false), 15000);
     return () => {
       cancelled = true;
       clearInterval(interval);
@@ -69,6 +75,7 @@ export default function VolunteerDashboard() {
     function pushLocation() {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
+          setMyPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
           updateVolunteerLocation(user.id, pos.coords.latitude, pos.coords.longitude).catch(() => {
             console.warn("Location sync failed");
           });
@@ -84,8 +91,47 @@ export default function VolunteerDashboard() {
   }, [isVolunteer, user?.id]);
 
   if (!isVolunteer) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/volunteer/login" replace />;
   }
+
+  // Distance can only be computed once we know the volunteer's own
+  // position (from the geolocation effect above) -- until then, requests
+  // stay in the backend's default order (priority, then oldest first)
+  // and show no distance rather than a made-up one.
+  const requestsWithDistance = myPosition
+    ? requests
+        .map((r) => ({
+          ...r,
+          distanceKm: haversineKm(myPosition.lat, myPosition.lng, r.locationLat, r.locationLng),
+        }))
+        .sort((a, b) => a.distanceKm - b.distanceKm)
+    : requests;
+
+  const myProfile = volunteers.find((v) => v.user_id === user.id);
+
+  const today = new Date();
+  const resolvedToday = allRequests.filter(
+    (r) =>
+      r.rawStatus === "resolved" &&
+      new Date(r.updatedAt).toDateString() === today.toDateString()
+  );
+  const resolved = allRequests.filter((r) => r.rawStatus === "resolved");
+  const avgResponseMinutes =
+    resolved.length > 0
+      ? Math.round(
+          resolved.reduce(
+            (sum, r) => sum + (new Date(r.updatedAt) - new Date(r.createdAt)) / 60000,
+            0
+          ) / resolved.length
+        )
+      : null;
+
+  const statValues = {
+    nearbyRequests: requests.length,
+    volunteersOnline: volunteers.length,
+    completedToday: resolvedToday.length,
+    avgResponse: avgResponseMinutes != null ? `${avgResponseMinutes} min` : "N/A",
+  };
 
   async function handleAccept(request) {
     try {
@@ -112,9 +158,9 @@ export default function VolunteerDashboard() {
   return (
     <DashboardLayout>
 
-      <VolunteerHeader />
+      <VolunteerHeader isAvailable={myProfile ? myProfile.is_available : true} />
 
-      <VolunteerStats />
+      <VolunteerStats values={statValues} />
 
       <section className="mt-12">
 
@@ -141,7 +187,7 @@ export default function VolunteerDashboard() {
 
             <div className="space-y-6">
 
-              {requests.map((request) => (
+              {requestsWithDistance.map((request) => (
 
                 <RequestCard
                   key={request.id}
@@ -149,7 +195,10 @@ export default function VolunteerDashboard() {
                     ...request,
                     emergency: request.request,
                     phone: request.victimPhone,
-                    distance: "N/A",
+                    distance:
+                      request.distanceKm != null
+                        ? `${request.distanceKm.toFixed(1)} km`
+                        : "Unknown",
                   }}
                   onAccept={handleAccept}
                 />
