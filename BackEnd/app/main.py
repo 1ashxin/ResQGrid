@@ -12,17 +12,49 @@ runs this file and listens on a network port -- FastAPI is the recipe,
 Uvicorn is the stove that cooks it.
 """
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
 from .routers import geo, ngo, resources, shelters, sos, users, volunteers
 
-# Creates any tables described in models.py that don't already exist yet.
-# This is a convenient shortcut for local development. schema.sql (in the
-# project root) is the "official" hand-written schema that Member 4 will
-# extend with PostGIS -- once that's the source of truth, this line becomes
-# optional.
+
+def apply_schema_sql():
+    """
+    Runs schema.sql against the database on every startup. schema.sql is
+    the source of truth -- it has the PostGIS `geography` columns and GIST
+    indexes that app/models.py deliberately leaves out (see the comments in
+    models.py next to current_lat/current_lng). Every statement in
+    schema.sql uses IF NOT EXISTS, so re-running it on a database that
+    already has the tables is a safe no-op.
+
+    This exists because Base.metadata.create_all() below only knows about
+    columns declared in models.py. If it ever runs first against a brand
+    new, empty database (e.g. a fresh Supabase DB on first deploy), it
+    would create sos_requests/volunteer_profiles/shelters WITHOUT the
+    geography columns -- and every raw-SQL query in geo_spatial.py would
+    then fail with "column does not exist". Running schema.sql first
+    guarantees those columns exist no matter which environment boots first.
+    """
+    schema_path = Path(__file__).resolve().parent.parent / "schema.sql"
+    sql = schema_path.read_text()
+
+    raw_conn = engine.raw_connection()
+    try:
+        cursor = raw_conn.cursor()
+        cursor.execute(sql)
+        raw_conn.commit()
+    finally:
+        raw_conn.close()
+
+
+apply_schema_sql()
+
+# Creates any tables described in models.py that aren't in schema.sql yet
+# (currently just security_audit_logs). Tables schema.sql already created
+# above are left untouched.
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(

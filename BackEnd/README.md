@@ -46,18 +46,36 @@ profiles, and shelters all live there.
    ```
    createdb resqgrid
    ```
-3. **Open a terminal in the `BackEnd` folder** and create a virtual
+3. **Install PostGIS** -- the spatial extension the SOS/volunteer/shelter
+   location features (nearest-volunteer lookups, etc.) depend on.
+   - Windows: open **Stack Builder** (bundled with the PostgreSQL
+     installer, or launchable from the Start Menu) and install the
+     "Spatial Extensions" > PostGIS package for your PostgreSQL version.
+   - macOS/Linux: install the `postgis` package for your distro, e.g.
+     `brew install postgis` or `apt install postgresql-<version>-postgis-3`.
+4. **Database schema** -- `schema.sql` is the source of truth: it creates
+   every table plus the PostGIS `geography(Point, 4326)` columns and
+   spatial indexes the app relies on. You don't need to run it by hand --
+   `app/main.py` applies it automatically every time the server starts
+   (every statement uses `IF NOT EXISTS`, so re-running it is always
+   safe, no matter how many times you restart the server). If you'd
+   rather apply it yourself first, e.g. to inspect the tables before
+   starting the server, you can still run:
+   ```
+   psql -U postgres -d resqgrid -f schema.sql
+   ```
+5. **Open a terminal in the `BackEnd` folder** and create a virtual
    environment (an isolated folder of Python packages just for this
    project, so it doesn't clash with anything else on your computer):
    ```
    python -m venv venv
    venv\Scripts\activate
    ```
-4. **Install the required libraries:**
+6. **Install the required libraries:**
    ```
    pip install -r requirements.txt
    ```
-5. **Create your secrets file:**
+7. **Create your secrets file:**
    ```
    copy .env.example .env
    ```
