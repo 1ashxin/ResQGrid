@@ -40,7 +40,7 @@ export default function VictimDashboard() {
         <ResponseMap />
       </section>
 
-      {/* Quick Actions + Alerts */}
+      {/* Quick Help + Alerts */}
       <section className="mt-8 grid gap-8 lg:grid-cols-2">
 
         <QuickieHelpCard />

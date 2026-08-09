@@ -11,17 +11,18 @@ export default function SOSCard() {
     <section className="card-glass rounded-3xl p-8">
 
       {/* Badge */}
-
       <div className="mb-6 inline-flex items-center rounded-full bg-danger px-4 py-2 text-sm font-semibold text-white">
 
-        <Siren size={16} className="mr-2" />
+        <Siren
+          size={16}
+          className="mr-2"
+        />
 
         Emergency Assistance
 
       </div>
 
       {/* Header */}
-
       <div className="flex items-start gap-5">
 
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-danger">
@@ -41,9 +42,9 @@ export default function SOSCard() {
 
           <p className="mt-3 max-w-2xl leading-7 text-secondary">
             Submit an emergency request to instantly notify nearby
-            volunteers, NGOs and emergency responders.
-            Your request will be prioritized based on urgency
-            and location to ensure the fastest possible response.
+            volunteers, NGOs and emergency responders. Your request
+            will be prioritized based on urgency and location to
+            ensure the fastest possible response.
           </p>
 
         </div>
@@ -51,10 +52,9 @@ export default function SOSCard() {
       </div>
 
       {/* Quick Information */}
-
       <div className="mt-8 grid gap-4 md:grid-cols-2">
 
-        <div className="bg-card rounded-2xl p-5">
+        <div className="rounded-2xl bg-card p-5">
 
           <div className="flex items-center gap-3">
 
@@ -79,7 +79,7 @@ export default function SOSCard() {
 
         </div>
 
-        <div className="bg-card rounded-2xl p-5">
+        <div className="rounded-2xl bg-card p-5">
 
           <div className="flex items-center gap-3">
 
@@ -107,7 +107,6 @@ export default function SOSCard() {
       </div>
 
       {/* Button */}
-
       <Link
         to="/victim/request"
         className="btn-danger mt-8 flex w-full items-center justify-center gap-3 rounded-2xl py-5 text-lg font-semibold transition-all duration-300 hover:-translate-y-1"

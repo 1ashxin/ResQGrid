@@ -9,12 +9,12 @@ import { Link } from "react-router-dom";
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden py-20">
+    <section className="relative overflow-hidden px-6 pb-24 pt-36">
 
       {/* Background Glow */}
-      <div className="absolute -top-40 right-0 h-[500px] w-[500px] rounded-full bg-sky-400/10 blur-3xl"></div>
+      <div className="absolute -top-40 right-0 h-[500px] w-[500px] rounded-full bg-sky-400/10 blur-3xl" />
 
-      <div className="absolute bottom-0 left-0 h-[350px] w-[350px] rounded-full bg-red-400/10 blur-3xl"></div>
+      <div className="absolute bottom-0 left-0 h-[350px] w-[350px] rounded-full bg-red-400/10 blur-3xl" />
 
       <div className="relative mx-auto grid max-w-7xl items-center gap-16 lg:grid-cols-2">
 
@@ -22,17 +22,13 @@ export default function Hero() {
         <div>
 
           <div className="card-glass inline-flex items-center rounded-full px-4 py-2">
-
             <span className="section-label text-sm">
               Intelligent Disaster Relief Coordination
             </span>
-
           </div>
 
           <h1 className="section-title mt-8 text-6xl leading-tight lg:text-7xl">
-
             From{" "}
-
             <span className="text-brand">
               Chaos
             </span>
@@ -40,11 +36,9 @@ export default function Hero() {
             <br />
 
             to{" "}
-
             <span className="text-danger">
               Coordination.
             </span>
-
           </h1>
 
           <p className="section-subtitle mt-8 max-w-xl text-lg leading-8">
@@ -89,9 +83,9 @@ export default function Hero() {
 
               <div className="flex items-center gap-2">
 
-                <div className="h-3 w-3 rounded-full bg-success animate-pulse"></div>
+                <div className="h-3 w-3 animate-pulse rounded-full bg-success" />
 
-                <span className="text-success text-sm font-semibold">
+                <span className="text-sm font-semibold text-success">
                   Operational
                 </span>
 
@@ -120,7 +114,7 @@ export default function Hero() {
 
                 </div>
 
-                <span className="text-danger text-xl font-bold">
+                <span className="text-xl font-bold text-danger">
                   84
                 </span>
 
@@ -141,7 +135,7 @@ export default function Hero() {
 
                 </div>
 
-                <span className="text-success text-xl font-bold">
+                <span className="text-xl font-bold text-success">
                   412
                 </span>
 
@@ -162,7 +156,7 @@ export default function Hero() {
 
                 </div>
 
-                <span className="text-brand text-xl font-bold">
+                <span className="text-xl font-bold text-brand">
                   26
                 </span>
 

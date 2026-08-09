@@ -1,26 +1,15 @@
-import { ChevronDown } from "lucide-react";
-
 export default function FAQCard({
   question,
   answer,
 }) {
   return (
-    <div className="card-glass rounded-2xl p-6">
+    <div className="card-glass rounded-3xl p-7 transition-all duration-300 hover:border-white/20 hover:shadow-lg">
 
-      <div className="mb-3 flex items-center justify-between">
+      <h3 className="text-xl font-semibold text-primary">
+        {question}
+      </h3>
 
-        <h3 className="font-semibold text-primary">
-          {question}
-        </h3>
-
-        <ChevronDown
-          size={20}
-          className="text-secondary"
-        />
-
-      </div>
-
-      <p className="text-secondary">
+      <p className="mt-4 leading-7 text-secondary">
         {answer}
       </p>
 
