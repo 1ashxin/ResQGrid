@@ -4,9 +4,9 @@ import logo from "../../assets/logo.png";
 
 export default function Navbar() {
   return (
-    <header className="sticky top-0 z-50 border-b border-glass bg-primary/90 backdrop-blur-xl">
+    <header className="fixed left-0 right-0 top-6 z-50">
 
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+      <nav className="mx-auto flex w-[95%] max-w-7xl items-center justify-between rounded-2xl border border-white/10 bg-background/80 px-6 py-5 shadow-2xl backdrop-blur-xl">
 
         {/* Logo */}
         <Link
