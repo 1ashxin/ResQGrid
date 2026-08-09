@@ -95,6 +95,9 @@ def find_nearest_shelters(
             s.capacity_occupied,
             (s.capacity_total - s.capacity_occupied) AS capacity_available,
             s.is_active,
+            s.managed_by_user_id,
+            s.created_at,
+            s.updated_at,
             ROUND(ST_Distance(s.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography)::numeric, 2) AS distance_meters,
             ROUND((ST_Distance(s.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) / 1000.0)::numeric, 2) AS distance_km
         FROM shelters s

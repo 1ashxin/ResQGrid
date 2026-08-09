@@ -78,6 +78,9 @@ def nearby_shelters(
             capacity_total=r["capacity_total"],
             capacity_occupied=r["capacity_occupied"],
             is_active=r["is_active"],
+            managed_by_user_id=r["managed_by_user_id"],
+            created_at=r["created_at"],
+            updated_at=r["updated_at"],
             distance_km=r["distance_km"]
         )
         for r in results

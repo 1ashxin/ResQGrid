@@ -60,6 +60,15 @@ CREATE TABLE IF NOT EXISTS ngo_profiles (
     contact_person       TEXT NOT NULL,
     phone                TEXT NOT NULL,
     address              TEXT,
+
+    -- Plain-number fallback location, mirrors volunteer_profiles/shelters.
+    location_lat         DOUBLE PRECISION,
+    location_lng         DOUBLE PRECISION,
+
+    -- PostGIS spatial column, kept in sync with location_lat/location_lng
+    -- by the application (see app/geo_spatial.py sync_ngo_geography).
+    location             geography(Point, 4326),
+
     volunteer_count      INTEGER,
     operation_areas      TEXT,
     emergency_contact    TEXT,
@@ -67,6 +76,18 @@ CREATE TABLE IF NOT EXISTS ngo_profiles (
 
     created_at           TIMESTAMP NOT NULL DEFAULT now()
 );
+
+-- ngo_profiles already existed in deployed databases before the columns
+-- above were added, and CREATE TABLE IF NOT EXISTS is a no-op against an
+-- existing table -- so these retrofit already-deployed tables the same way
+-- the CREATE TABLE above covers brand new ones. Safe to re-run: IF NOT
+-- EXISTS makes each ALTER a no-op once the column exists.
+ALTER TABLE ngo_profiles ADD COLUMN IF NOT EXISTS location_lat DOUBLE PRECISION;
+ALTER TABLE ngo_profiles ADD COLUMN IF NOT EXISTS location_lng DOUBLE PRECISION;
+ALTER TABLE ngo_profiles ADD COLUMN IF NOT EXISTS location geography(Point, 4326);
+
+CREATE INDEX IF NOT EXISTS ngo_profiles_location_idx
+    ON ngo_profiles USING GIST (location);
 
 CREATE TABLE IF NOT EXISTS sos_requests (
     id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
