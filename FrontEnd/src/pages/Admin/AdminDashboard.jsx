@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 import {
@@ -38,9 +38,9 @@ function AdminDashboard() {
   const { isAdminLoggedIn, logout } = useAuth();
   const navigate = useNavigate();
 
-  if (!isAdminLoggedIn) {
-    return <Navigate to="/login" replace />;
-  }
+  //if (!isAdminLoggedIn) {
+  //  return <Navigate to="/login" replace />;
+  //}
 
   function handleLogout() {
     logout();
