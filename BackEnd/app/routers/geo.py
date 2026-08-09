@@ -15,7 +15,7 @@ to finish; this file only fixes main.py's crash from referencing a router
 module that was never committed.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from .. import schemas, geo_spatial
@@ -50,3 +50,54 @@ def nearest_volunteers_postgis(
     PostGIS is fully set up, same idea either way.
     """
     return geo_spatial.find_nearest_volunteers_to_sos(db, sos_id, limit, radius_meters)
+
+
+@router.get("/nearest-shelters")
+def nearest_shelters_postgis(
+    lat: float = Query(..., description="Latitude of user/SOS ping"),
+    lng: float = Query(..., description="Longitude of user/SOS ping"),
+    radius_meters: float = Query(50000.0, description="Search radius in meters (default 50km)"),
+    limit: int = Query(10, description="Max results"),
+    db: Session = Depends(get_db)
+):
+    """
+    PostGIS-backed spatial search for shelters nearest to given coordinates.
+    """
+    return geo_spatial.find_nearest_shelters(db, lat=lat, lng=lng, radius_meters=radius_meters, limit=limit)
+
+
+@router.get("/nearest-ngos")
+def nearest_ngos_postgis(
+    lat: float = Query(..., description="Latitude of user/SOS ping"),
+    lng: float = Query(..., description="Longitude of user/SOS ping"),
+    radius_meters: float = Query(50000.0, description="Search radius in meters (default 50km)"),
+    limit: int = Query(10, description="Max results"),
+    db: Session = Depends(get_db)
+):
+    """
+    PostGIS-backed spatial search for NGOs nearest to given coordinates.
+    """
+    return geo_spatial.find_nearest_ngos(db, lat=lat, lng=lng, radius_meters=radius_meters, limit=limit)
+
+
+@router.get("/nearest-facilities")
+def nearest_facilities_postgis(
+    lat: float = Query(..., description="Latitude of user/SOS ping"),
+    lng: float = Query(..., description="Longitude of user/SOS ping"),
+    radius_meters: float = Query(50000.0, description="Search radius in meters (default 50km)"),
+    limit: int = Query(5, description="Max results per category"),
+    db: Session = Depends(get_db)
+):
+    """
+    Consolidated PostGIS endpoint returning both nearest shelters and NGOs in a single payload.
+    Ideal for rendering map markers on the frontend dashboard.
+    """
+    shelters = geo_spatial.find_nearest_shelters(db, lat=lat, lng=lng, radius_meters=radius_meters, limit=limit)
+    ngos = geo_spatial.find_nearest_ngos(db, lat=lat, lng=lng, radius_meters=radius_meters, limit=limit)
+
+    return {
+        "success": True,
+        "query_location": {"lat": lat, "lng": lng},
+        "shelters": shelters,
+        "ngos": ngos
+    }
