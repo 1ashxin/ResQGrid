@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:8000";
+import { API_URL as API_BASE_URL } from "../api/client";
 
 // Update volunteer location in real-time via PostGIS backend endpoint.
 // Endpoint is keyed by user_id in the URL (not the body) and uses PATCH,

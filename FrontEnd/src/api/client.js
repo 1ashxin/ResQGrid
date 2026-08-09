@@ -1,12 +1,14 @@
 import axios from "axios";
 
-// Falls back to the local backend if VITE_API_URL isn't set.
-// To use another backend, create a .env file in FrontEnd/:
+// Defaults to the live Railway backend, so anyone who clones the repo and
+// runs the frontend talks to real data with no setup required.
+// To point at a local FastAPI instance instead (e.g. testing a backend
+// change that isn't deployed yet), create FrontEnd/.env.local:
 //
 // VITE_API_URL=http://127.0.0.1:8000
 
-const API_URL =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+export const API_URL =
+  import.meta.env.VITE_API_URL || "https://resqgrid.up.railway.app";
 
 const api = axios.create({
   baseURL: API_URL,
