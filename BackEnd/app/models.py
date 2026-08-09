@@ -13,9 +13,9 @@ shared spreadsheet -- the class name is the tab's name, and each
 import enum
 import uuid
 from datetime import datetime
-
 from sqlalchemy import (
-    Column, String, Float, Integer, Boolean, DateTime, ForeignKey, Enum as SAEnum
+    Column, String, Float, Integer, Boolean, DateTime, ForeignKey,
+    Text, Enum as SAEnum
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -145,19 +145,52 @@ class Shelter(Base):
     name = Column(String, nullable=False)
     address = Column(String, nullable=True)
 
-    # Plain lat/lng, kept in sync with schema.sql's location geography
-    # column via app/geo_spatial.py (see routers/shelters.py's create endpoint).
     location_lat = Column(Float, nullable=False)
     location_lng = Column(Float, nullable=False)
 
     capacity_total = Column(Integer, nullable=False)
     capacity_occupied = Column(Integer, default=0, nullable=False)
 
-    # Soft-delete flag: closed/decommissioned shelters are marked inactive
-    # instead of being deleted outright, so historical capacity data isn't lost.
     is_active = Column(Boolean, default=True, nullable=False)
 
-    managed_by_user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=True)
+    managed_by_user_id = Column(
+        UUID(as_uuid=False),
+        ForeignKey("users.id"),
+        nullable=True
+    )
 
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
+    )
+
+
+class SecurityAuditLog(Base):
+    """Records security-sensitive actions performed in the system."""
+
+    __tablename__ = "security_audit_logs"
+
+    id = Column(
+        UUID(as_uuid=False),
+        primary_key=True,
+        default=generate_uuid,
+    )
+
+    user_id = Column(
+        UUID(as_uuid=False),
+        ForeignKey("users.id"),
+        nullable=True,
+    )
+
+    action = Column(Text, nullable=False)
+    resource = Column(Text, nullable=True)
+    resource_id = Column(UUID(as_uuid=False), nullable=True)
+    details = Column(Text, nullable=True)
+
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+    )
