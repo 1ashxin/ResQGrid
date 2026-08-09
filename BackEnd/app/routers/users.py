@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..security import hash_password, verify_password
+from ..audit import log_security_event
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -54,9 +55,17 @@ def login_user(payload: schemas.UserLogin, db: Session = Depends(get_db)):
     """
     user = db.query(models.User).filter(models.User.email == payload.email).first()
     if not user or not verify_password(payload.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Incorrect email or password")
-    return user
+     raise HTTPException(status_code=401, detail="Incorrect email or password")
+    log_security_event(
+        db=db,
+        action="LOGIN",
+        resource="user",
+        resource_id=user.id,
+        user_id=user.id,
+        details="User logged in successfully",
+    )
 
+    return user
 
 @router.get("/", response_model=list[schemas.UserOut])
 def list_users(role: schemas.UserRole | None = None, db: Session = Depends(get_db)):

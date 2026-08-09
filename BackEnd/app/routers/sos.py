@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas, geo_spatial
 from ..database import get_db
 from ..geo import haversine_km
-from core_security_and_logic.priority_engine import calculate_priority
+from core_security_and_logic.priority_engine import calculate_priority,priority_category
 from ..audit import log_security_event
 
 router = APIRouter(prefix="/sos", tags=["SOS Requests"])
@@ -39,10 +39,10 @@ def create_sos_request(payload: schemas.SOSRequestCreate, db: Session = Depends(
         location_lng=payload.location_lng,
         priority_score=calculate_priority(payload.description),
     )
-    new_request.priority_score = calculate_priority(payload.description)
     db.add(new_request)
     db.commit()
     db.refresh(new_request)
+    new_request.priority = priority_category(new_request.priority_score)
     log_security_event(
     db=db,
     action="SOS_CREATED",
@@ -94,6 +94,15 @@ def update_sos_status(sos_id: str, payload: schemas.SOSStatusUpdate, db: Session
     sos.status = payload.status
     db.commit()
     db.refresh(sos)
+
+    log_security_event(
+        db=db,
+        action="SOS_STATUS_UPDATED",
+        resource="sos_request",
+        resource_id=sos_id,
+        details=f"SOS status changed to {payload.status}",
+    )
+
     return sos
 
 
@@ -182,4 +191,14 @@ def assign_volunteer(sos_id: str, payload: schemas.SOSAssignVolunteer, db: Sessi
     sos.status = models.SOSStatus.ASSIGNED
     db.commit()
     db.refresh(sos)
+
+    log_security_event(
+        db=db,
+        action="SOS_ASSIGNED",
+        resource="sos_request",
+        resource_id=sos_id,
+        user_id=volunteer.id,
+        details="Volunteer assigned to SOS request",
+    )
+
     return sos
