@@ -180,6 +180,7 @@ class SOSRequestOut(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+    priority_score: Optional[int] = None
 
 
 # ---------- Shelter schemas ----------

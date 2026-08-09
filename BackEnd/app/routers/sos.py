@@ -12,6 +12,7 @@ from .. import models, schemas, geo_spatial
 from ..database import get_db
 from ..geo import haversine_km
 from core_security_and_logic.priority_engine import calculate_priority
+from ..audit import log_security_event
 
 router = APIRouter(prefix="/sos", tags=["SOS Requests"])
 
@@ -38,10 +39,17 @@ def create_sos_request(payload: schemas.SOSRequestCreate, db: Session = Depends(
         location_lng=payload.location_lng,
         priority_score=calculate_priority(payload.description),
     )
+    new_request.priority_score = calculate_priority(payload.description)
     db.add(new_request)
     db.commit()
     db.refresh(new_request)
-
+    log_security_event(
+    db=db,
+    action="SOS_CREATED",
+    resource="sos_request",
+    resource_id=new_request.id,
+    details="New SOS request created",
+)
     # Keeps the PostGIS geography column in sync so nearest-volunteer
     # spatial queries (see routers/geo.py) work on this request too.
     geo_spatial.sync_sos_geography(db, new_request.id, payload.location_lat, payload.location_lng)
