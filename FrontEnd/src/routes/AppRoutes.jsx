@@ -23,6 +23,7 @@ import AdminDashboard from "../pages/Admin/AdminDashboard";
 
 // Shared
 import Profile from "../pages/Shared/Profile";
+import EditProfile from "../pages/Shared/EditProfile";
 import Notifications from "../pages/Shared/Notifications";
 import Search from "../pages/Shared/Search";
 import History from "../pages/Shared/History";
@@ -37,23 +38,43 @@ export default function AppRoutes() {
     <Routes>
 
       {/* Landing */}
-      <Route path="/" element={<LandingPage />} />
+      <Route
+        path="/"
+        element={<LandingPage />}
+      />
 
       {/* Victim */}
-      <Route path="/victim" element={<VictimDashboard />} />
-      <Route path="/victim/request" element={<SOSRequest />} />
+      <Route
+        path="/victim"
+        element={<VictimDashboard />}
+      />
+
+      <Route
+        path="/victim/request"
+        element={<SOSRequest />}
+      />
 
       {/* Volunteer */}
-      <Route path="/volunteer" element={<VolunteerPortal />} />
-      <Route path="/volunteer/login" element={<VolunteerLogin />} />
+      <Route
+        path="/volunteer"
+        element={<VolunteerPortal />}
+      />
+
+      <Route
+        path="/volunteer/login"
+        element={<VolunteerLogin />}
+      />
+
       <Route
         path="/volunteer/register/individual"
         element={<IndividualSignup />}
       />
+
       <Route
         path="/volunteer/register/ngo"
         element={<NGOSignup />}
       />
+
       <Route
         path="/volunteer/dashboard"
         element={<VolunteerDashboard />}
@@ -66,19 +87,57 @@ export default function AppRoutes() {
       />
 
       {/* Admin */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/admin" element={<AdminDashboard />} />
+      <Route
+        path="/login"
+        element={<Login />}
+      />
+
+      <Route
+        path="/admin"
+        element={<AdminDashboard />}
+      />
 
       {/* Shared Pages */}
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/notifications" element={<Notifications />} />
-      <Route path="/search" element={<Search />} />
-      <Route path="/history" element={<History />} />
-      <Route path="/help" element={<Help />} />
-      <Route path="/settings" element={<Settings />} />
+      <Route
+        path="/profile"
+        element={<Profile />}
+      />
+
+      <Route
+        path="/profile/edit"
+        element={<EditProfile />}
+      />
+
+      <Route
+        path="/notifications"
+        element={<Notifications />}
+      />
+
+      <Route
+        path="/search"
+        element={<Search />}
+      />
+
+      <Route
+        path="/history"
+        element={<History />}
+      />
+
+      <Route
+        path="/help"
+        element={<Help />}
+      />
+
+      <Route
+        path="/settings"
+        element={<Settings />}
+      />
 
       {/* 404 */}
-      <Route path="*" element={<NotFound />} />
+      <Route
+        path="*"
+        element={<NotFound />}
+      />
 
     </Routes>
   );
