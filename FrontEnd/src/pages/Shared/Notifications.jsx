@@ -1,61 +1,74 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, CheckCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import DashboardLayout from "../../layouts/DashboardLayout";
 import NotificationCard from "../../components/notifications/NotificationCard";
+import { listSOSRequests, listShelters, listResources } from "../../api/client";
+import { buildActivityFeed } from "../../utils/activity";
+import { formatRelativeTime, parseUtcTimestamp } from "../../utils/sos";
+
+// Same severity buckets NotificationCard already knows how to render
+// (danger/success/warning/default) -- everything else falls to "info".
+const KIND_TO_CARD_TYPE = {
+  "sos-critical": "danger",
+  "sos-resolved": "success",
+  "shelter-warning": "warning",
+  "resource-warning": "warning",
+};
+
+// A "new" event is shown as unread until it's more than 30 minutes old --
+// there's no backend read-tracking yet, so this is the closest approximation
+// to "recent" without persisting per-user read state.
+const UNREAD_WINDOW_MS = 30 * 60 * 1000;
+
+function toCardNotification(item) {
+  const ageMs = item.timestamp ? Date.now() - parseUtcTimestamp(item.timestamp).getTime() : Infinity;
+  return {
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    time: item.timestamp ? formatRelativeTime(item.timestamp) : "",
+    type: KIND_TO_CARD_TYPE[item.kind] || "info",
+    unread: ageMs < UNREAD_WINDOW_MS,
+  };
+}
 
 export default function Notifications() {
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: "New SOS Request",
-      description: "Flood emergency reported in Sector 12.",
-      time: "2 min ago",
-      type: "danger",
-      unread: true,
-    },
-    {
-      id: 2,
-      title: "Volunteer Assigned",
-      description: "Rahul Sharma accepted Request #104.",
-      time: "10 min ago",
-      type: "success",
-      unread: true,
-    },
-    {
-      id: 3,
-      title: "Inventory Updated",
-      description: "Medical supplies restocked.",
-      time: "35 min ago",
-      type: "warning",
-      unread: false,
-    },
-    {
-      id: 4,
-      title: "Camp Status",
-      description: "Camp Alpha has reached 80% capacity.",
-      time: "Yesterday",
-      type: "info",
-      unread: false,
-    },
-    {
-      id: 5,
-      title: "Weather Alert",
-      description: "Heavy rainfall expected within the next 3 hours.",
-      time: "Yesterday",
-      type: "danger",
-      unread: true,
-    },
-  ]);
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const [sosRequests, shelters, resources] = await Promise.all([
+          listSOSRequests(),
+          listShelters(),
+          listResources(),
+        ]);
+        if (cancelled) return;
+        setNotifications(
+          buildActivityFeed(sosRequests, shelters, resources)
+            .slice(0, 20)
+            .map(toCardNotification)
+        );
+      } catch {
+        // Leave whatever was already loaded on screen rather than clearing
+        // it out on a transient failed refresh.
+      }
+    }
+
+    load();
+    const interval = setInterval(load, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   function markAllRead() {
-    setNotifications(
-      notifications.map((item) => ({
-        ...item,
-        unread: false,
-      }))
-    );
+    setNotifications((prev) => prev.map((item) => ({ ...item, unread: false })));
   }
 
   return (
@@ -105,14 +118,28 @@ export default function Notifications() {
 
         <div className="space-y-5">
 
-          {notifications.map((notification) => (
+          {notifications.length > 0 ? (
+            notifications.map((notification) => (
 
-            <NotificationCard
-              key={notification.id}
-              {...notification}
-            />
+              <NotificationCard
+                key={notification.id}
+                {...notification}
+              />
 
-          ))}
+            ))
+          ) : (
+            <div className="card-glass rounded-2xl p-10 text-center">
+
+              <h3 className="text-xl font-semibold text-primary">
+                No Notifications
+              </h3>
+
+              <p className="mt-2 text-secondary">
+                You're all caught up -- nothing needs your attention right now.
+              </p>
+
+            </div>
+          )}
 
         </div>
 

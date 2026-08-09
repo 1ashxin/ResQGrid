@@ -13,14 +13,17 @@ export function extractFromDescription(description, label) {
   return match ? match[1] : null;
 }
 
-export function formatRelativeTime(isoString) {
-  // The backend serializes timestamps as naive UTC -- no "Z" or offset
-  // suffix (they come from Python's datetime.utcnow()). Without this,
-  // `new Date(...)` parses the string as local time instead of UTC, which
-  // silently shifts every "time ago" by the viewer's UTC offset (e.g. ~5.5
-  // hours off in IST).
+// The backend serializes timestamps as naive UTC -- no "Z" or offset suffix
+// (they come from Python's datetime.utcnow()). Without this, `new Date(...)`
+// parses the string as local time instead of UTC, which silently shifts
+// every computed age by the viewer's UTC offset (e.g. ~5.5 hours off in IST).
+export function parseUtcTimestamp(isoString) {
   const utcString = /[Zz]|[+-]\d\d:?\d\d$/.test(isoString) ? isoString : `${isoString}Z`;
-  const diffMs = Date.now() - new Date(utcString).getTime();
+  return new Date(utcString);
+}
+
+export function formatRelativeTime(isoString) {
+  const diffMs = Date.now() - parseUtcTimestamp(isoString).getTime();
   const minutes = Math.round(diffMs / 60000);
   if (minutes < 1) return "just now";
   if (minutes < 60) return `${minutes} min ago`;

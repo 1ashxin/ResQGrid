@@ -3,7 +3,8 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../../context/NotificationContext";
 import { listSOSRequests, listVolunteers, listShelters, listResources } from "../../api/client";
-import { transformSOSRequest } from "../../utils/sos";
+import { transformSOSRequest, formatRelativeTime } from "../../utils/sos";
+import { buildActivityFeed } from "../../utils/activity";
 
 import {
   LayoutDashboard,
@@ -55,6 +56,33 @@ const RESOURCE_STOCK_PERCENTAGE = {
   Moderate: 50,
   Low: 20,
 };
+
+// Maps an activity feed item's `kind` (see utils/activity.js) to the icon
+// and red/yellow/blue color bucket the notification panel already renders.
+const ACTIVITY_ICONS = {
+  "sos-critical": AlertTriangle,
+  "sos-progress": Radio,
+  "sos-resolved": CheckCircle2,
+  "sos-new": Siren,
+  "shelter-warning": Building2,
+  "resource-warning": Package,
+};
+
+const ACTIVITY_TYPES = {
+  "sos-critical": "critical",
+  "shelter-warning": "warning",
+  "resource-warning": "warning",
+};
+
+function toAdminNotification(item) {
+  return {
+    title: item.title,
+    location: item.location || item.description,
+    time: formatRelativeTime(item.timestamp),
+    icon: ACTIVITY_ICONS[item.kind] || Bell,
+    type: ACTIVITY_TYPES[item.kind] || "info",
+  };
+}
 
 function transformResource(resource) {
   const status = RESOURCE_STATUS_LABELS[resource.status] || resource.status;
@@ -113,6 +141,7 @@ function AdminDashboard() {
   const [volunteers, setVolunteers] = useState([]);
   const [shelters, setShelters] = useState([]);
   const [resources, setResources] = useState([]);
+  const [notifications, setNotifications] = useState([]);
 
   const { isAdminLoggedIn, logout } = useAuth();
   const { showToast } = useNotification();
@@ -138,6 +167,11 @@ function AdminDashboard() {
         setVolunteers(rawVolunteers.map((v) => transformVolunteer(v, transformedSOS)));
         setShelters(rawShelters.map(transformShelter));
         setResources(rawResources.map(transformResource));
+        setNotifications(
+          buildActivityFeed(rawSOS, rawShelters, rawResources)
+            .slice(0, 6)
+            .map(toAdminNotification)
+        );
       } catch {
         // Only surface a toast on the initial load, not on every failed
         // background refresh -- otherwise a down backend spams a new
@@ -186,37 +220,6 @@ function AdminDashboard() {
     {
       name: "Resources",
       icon: Package,
-    },
-  ];
-
-  const notifications = [
-    {
-      title: "Critical SOS detected",
-      location: "Kothrud",
-      time: "2 min ago",
-      icon: AlertTriangle,
-      type: "critical",
-    },
-    {
-      title: "Shelter nearing capacity",
-      location: "Shelter B · Baner",
-      time: "5 min ago",
-      icon: Building2,
-      type: "warning",
-    },
-    {
-      title: "Medical supplies low",
-      location: "Shelter C · Aundh",
-      time: "8 min ago",
-      icon: Package,
-      type: "warning",
-    },
-    {
-      title: "Response team deployed",
-      location: "Baner",
-      time: "12 min ago",
-      icon: Radio,
-      type: "info",
     },
   ];
 
