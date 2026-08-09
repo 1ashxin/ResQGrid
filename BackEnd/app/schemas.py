@@ -112,6 +112,38 @@ class VolunteerWithDistanceOut(VolunteerProfileOut):
     distance_km: float
 
 
+# ---------- NGO schemas ----------
+
+class NGOProfileCreate(BaseModel):
+    user_id: str
+    org_name: str
+    registration_number: str
+    contact_person: str
+    phone: str
+    address: Optional[str] = None
+    volunteer_count: Optional[int] = None
+    operation_areas: Optional[str] = None
+    emergency_contact: Optional[str] = None
+    services: Optional[str] = None
+
+
+class NGOProfileOut(BaseModel):
+    id: str
+    user_id: str
+    org_name: str
+    registration_number: str
+    contact_person: str
+    phone: str
+    address: Optional[str] = None
+    volunteer_count: Optional[int] = None
+    operation_areas: Optional[str] = None
+    emergency_contact: Optional[str] = None
+    services: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 # ---------- SOS request schemas ----------
 
 class SOSRequestCreate(BaseModel):

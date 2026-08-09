@@ -103,6 +103,18 @@ export function updateVolunteerLocation(volunteerId, lat, lng) {
 }
 
 // =======================
+// NGO
+// =======================
+
+export function createNGOProfile(payload) {
+  return api.post("/ngo/", payload).then((res) => res.data);
+}
+
+export function listNGOProfiles() {
+  return api.get("/ngo/").then((res) => res.data);
+}
+
+// =======================
 // Shelters
 // =======================
 

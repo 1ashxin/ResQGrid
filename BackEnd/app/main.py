@@ -16,7 +16,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
-from .routers import geo, resources, shelters, sos, users, volunteers
+from .routers import geo, ngo, resources, shelters, sos, users, volunteers
 
 # Creates any tables described in models.py that don't already exist yet.
 # This is a convenient shortcut for local development. schema.sql (in the
@@ -54,6 +54,7 @@ app.include_router(volunteers.router)
 app.include_router(shelters.router)
 app.include_router(geo.router)
 app.include_router(resources.router)
+app.include_router(ngo.router)
 
 
 @app.get("/")

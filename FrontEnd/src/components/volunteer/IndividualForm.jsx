@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { registerUser, createVolunteerProfile } from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
 
 const skills = [
   "Medical",
@@ -12,6 +14,7 @@ const skills = [
 
 export default function IndividualForm() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [form, setForm] = useState({
     name: "",
@@ -24,6 +27,8 @@ export default function IndividualForm() {
     availability: "Full Time",
     skills: [],
   });
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   function handleChange(e) {
     setForm({
@@ -46,13 +51,40 @@ export default function IndividualForm() {
     }
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    setError("");
 
-    // TODO:
-    // axios.post("/api/volunteer/register", form);
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
 
-    navigate("/volunteer/dashboard");
+    setSubmitting(true);
+
+    try {
+      const user = await registerUser({
+        email: form.email,
+        password: form.password,
+        role: "volunteer",
+      });
+      await createVolunteerProfile({
+        user_id: user.id,
+        full_name: form.name,
+        phone: form.phone,
+        skills: form.skills.join(", ") || null,
+      });
+      login(user);
+      navigate("/volunteer/dashboard");
+    } catch (err) {
+      if (err.response?.status === 400) {
+        setError(err.response.data?.detail || "That email is already registered.");
+      } else {
+        setError("Couldn't reach the server. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -219,13 +251,20 @@ export default function IndividualForm() {
 
       </div>
 
+      {error && (
+        <p className="text-sm text-red-400">
+          {error}
+        </p>
+      )}
+
       {/* Submit */}
 
       <button
         type="submit"
-        className="btn-primary w-full rounded-2xl py-4 text-lg font-semibold transition-all duration-300 hover:-translate-y-1"
+        disabled={submitting}
+        className="btn-primary w-full rounded-2xl py-4 text-lg font-semibold transition-all duration-300 hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        Register as Volunteer
+        {submitting ? "Registering..." : "Register as Volunteer"}
       </button>
 
     </form>

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { registerUser, createNGOProfile } from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
 
 const services = [
   "Medical Aid",
@@ -14,6 +16,7 @@ const services = [
 
 export default function NGOForm() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [form, setForm] = useState({
     organizationName: "",
@@ -29,6 +32,8 @@ export default function NGOForm() {
     confirmPassword: "",
     services: [],
   });
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   function handleChange(e) {
     setForm({
@@ -51,13 +56,46 @@ export default function NGOForm() {
     }
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    setError("");
 
-    // TODO:
-    // axios.post("/api/ngo/register", form);
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
 
-    navigate("/volunteer/dashboard");
+    setSubmitting(true);
+
+    try {
+      const user = await registerUser({
+        email: form.email,
+        password: form.password,
+        role: "ngo",
+      });
+      await createNGOProfile({
+        user_id: user.id,
+        org_name: form.organizationName,
+        registration_number: form.registrationNumber,
+        contact_person: form.contactPerson,
+        phone: form.phone,
+        address: form.address || null,
+        volunteer_count: form.volunteers ? Number(form.volunteers) : null,
+        operation_areas: form.operationAreas || null,
+        emergency_contact: form.emergencyContact || null,
+        services: form.services.join(", ") || null,
+      });
+      login(user);
+      navigate("/ngo/dashboard");
+    } catch (err) {
+      if (err.response?.status === 400) {
+        setError(err.response.data?.detail || "That email is already registered.");
+      } else {
+        setError("Couldn't reach the server. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -238,11 +276,18 @@ export default function NGOForm() {
 
       </section>
 
+      {error && (
+        <p className="text-sm text-red-400">
+          {error}
+        </p>
+      )}
+
       <button
         type="submit"
-        className="btn-primary w-full rounded-2xl py-4 text-lg font-semibold transition-all duration-300 hover:-translate-y-1"
+        disabled={submitting}
+        className="btn-primary w-full rounded-2xl py-4 text-lg font-semibold transition-all duration-300 hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        Register Organization
+        {submitting ? "Registering..." : "Register Organization"}
       </button>
 
     </form>

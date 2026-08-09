@@ -52,6 +52,22 @@ CREATE TABLE IF NOT EXISTS volunteer_profiles (
 CREATE INDEX IF NOT EXISTS volunteer_profiles_location_idx
     ON volunteer_profiles USING GIST (current_location);
 
+CREATE TABLE IF NOT EXISTS ngo_profiles (
+    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id              UUID NOT NULL UNIQUE REFERENCES users(id),
+    org_name             TEXT NOT NULL,
+    registration_number  TEXT NOT NULL,
+    contact_person       TEXT NOT NULL,
+    phone                TEXT NOT NULL,
+    address              TEXT,
+    volunteer_count      INTEGER,
+    operation_areas      TEXT,
+    emergency_contact    TEXT,
+    services             TEXT,
+
+    created_at           TIMESTAMP NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS sos_requests (
     id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 

@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { User, Building2 } from "lucide-react";
+import { loginUser } from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
 
 export default function LoginForm() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [accountType, setAccountType] = useState("individual");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     email: "",
@@ -22,17 +27,24 @@ export default function LoginForm() {
     });
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    setError("");
+    setSubmitting(true);
 
-    // Backend authentication will go here later
-
-    if (accountType === "individual") {
-      navigate("/volunteer/dashboard");
-      return;
+    try {
+      const user = await loginUser({ email: form.email, password: form.password });
+      login(user);
+      navigate(user.role === "ngo" ? "/ngo/dashboard" : "/volunteer/dashboard");
+    } catch (err) {
+      if (err.response?.status === 401) {
+        setError("Invalid email or password.");
+      } else {
+        setError("Couldn't reach the server. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
     }
-
-    navigate("/ngo/dashboard");
   }
 
   return (
@@ -159,13 +171,20 @@ export default function LoginForm() {
 
       </div>
 
+      {error && (
+        <p className="mt-6 text-sm text-red-400">
+          {error}
+        </p>
+      )}
+
       {/* Login Button */}
 
       <button
         type="submit"
-        className="btn-primary mt-8 w-full rounded-2xl py-4 text-lg font-semibold transition-all duration-300 hover:-translate-y-1"
+        disabled={submitting}
+        className="btn-primary mt-8 w-full rounded-2xl py-4 text-lg font-semibold transition-all duration-300 hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        Sign In
+        {submitting ? "Signing In..." : "Sign In"}
       </button>
 
     </form>

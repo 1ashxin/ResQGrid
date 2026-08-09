@@ -15,7 +15,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, String, Float, Integer, Numeric, Boolean, DateTime, ForeignKey, Enum as SAEnum
+    Column, String, Text, Float, Integer, Numeric, Boolean, DateTime, ForeignKey, Enum as SAEnum
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -82,6 +82,11 @@ class User(Base):
         "VolunteerProfile", back_populates="user", uselist=False
     )
 
+    # One user can have one NGO profile (only relevant if role == ngo)
+    ngo_profile = relationship(
+        "NGOProfile", back_populates="user", uselist=False
+    )
+
 
 class VolunteerProfile(Base):
     """
@@ -109,6 +114,32 @@ class VolunteerProfile(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="volunteer_profile")
+
+
+class NGOProfile(Base):
+    """
+    Extra details specific to NGOs, kept in their own table so the shared
+    'users' table stays simple across all four roles. Mirrors
+    VolunteerProfile's structure -- no location/availability columns
+    though, since those are volunteer-specific concepts.
+    """
+    __tablename__ = "ngo_profiles"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), unique=True, nullable=False)
+    org_name = Column(String, nullable=False)
+    registration_number = Column(String, nullable=False)
+    contact_person = Column(String, nullable=False)
+    phone = Column(String, nullable=False)
+    address = Column(String, nullable=True)
+    volunteer_count = Column(Integer, nullable=True)
+    operation_areas = Column(String, nullable=True)
+    emergency_contact = Column(String, nullable=True)
+    services = Column(String, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="ngo_profile")
 
 
 class SOSRequest(Base):
@@ -168,6 +199,20 @@ class Shelter(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class SecurityAuditLog(Base):
+    """Records security-sensitive actions performed in the system."""
+    __tablename__ = "security_audit_logs"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=True)
+    action = Column(Text, nullable=False)
+    resource = Column(Text, nullable=True)
+    resource_id = Column(UUID(as_uuid=False), nullable=True)
+    details = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 
 class Resource(Base):
