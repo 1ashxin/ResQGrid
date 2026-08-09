@@ -16,28 +16,34 @@ function loadStoredUser() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(loadStoredUser);
 
-  // login() takes the UserOut object returned by POST /users/login
-  // (id, email, role, created_at), so the whole app knows who's signed in
-  // and what role they have, not just a yes/no flag.
+  // Login
   function login(userData) {
     setUser(userData);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
   }
 
+  // Logout
   function logout() {
-    setUser(null);
     localStorage.removeItem(STORAGE_KEY);
+    setUser(null);
+  }
+
+  // Update profile data
+  function updateUser(updatedUser) {
+    setUser(updatedUser);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
   }
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        role: user?.role,
+        role: user?.role || "",
         isLoggedIn: !!user,
         isAdminLoggedIn: user?.role === "admin",
         login,
         logout,
+        updateUser,
       }}
     >
       {children}

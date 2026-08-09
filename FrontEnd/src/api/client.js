@@ -1,10 +1,12 @@
 import axios from "axios";
 
-// Falls back to the local backend's default address if VITE_API_URL isn't
-// set. To point at a different backend (e.g. a teammate's machine, or a
-// deployed server), create a .env file in FrontEnd/ with:
-//   VITE_API_URL=http://127.0.0.1:8000
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+// Falls back to the local backend if VITE_API_URL isn't set.
+// To use another backend, create a .env file in FrontEnd/:
+//
+// VITE_API_URL=http://127.0.0.1:8000
+
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 const api = axios.create({
   baseURL: API_URL,
@@ -15,7 +17,9 @@ const api = axios.create({
 
 export default api;
 
-// ---------- Users ----------
+// =======================
+// Users
+// =======================
 
 export function registerUser(payload) {
   return api.post("/users/register", payload).then((res) => res.data);
@@ -25,7 +29,9 @@ export function loginUser(payload) {
   return api.post("/users/login", payload).then((res) => res.data);
 }
 
-// ---------- SOS requests ----------
+// =======================
+// SOS Requests
+// =======================
 
 export function createSOSRequest(payload) {
   return api.post("/sos/", payload).then((res) => res.data);
@@ -40,26 +46,38 @@ export function getSOSRequest(sosId) {
 }
 
 export function updateSOSStatus(sosId, status) {
-  return api.patch(`/sos/${sosId}/status`, { status }).then((res) => res.data);
+  return api
+    .patch(`/sos/${sosId}/status`, { status })
+    .then((res) => res.data);
 }
 
 export function assignVolunteer(sosId, volunteerUserId) {
   return api
-    .patch(`/sos/${sosId}/assign`, { volunteer_user_id: volunteerUserId })
+    .patch(`/sos/${sosId}/assign`, {
+      volunteer_user_id: volunteerUserId,
+    })
     .then((res) => res.data);
 }
 
 export function nearestVolunteers(sosId, limit = 5) {
   return api
-    .get(`/sos/${sosId}/nearest-volunteers`, { params: { limit } })
+    .get(`/sos/${sosId}/nearest-volunteers`, {
+      params: { limit },
+    })
     .then((res) => res.data);
 }
 
-// ---------- Volunteers ----------
+// =======================
+// Volunteers
+// =======================
 
 export function listVolunteers(availableOnly = false) {
   return api
-    .get("/volunteers/", { params: { available_only: availableOnly } })
+    .get("/volunteers/", {
+      params: {
+        available_only: availableOnly,
+      },
+    })
     .then((res) => res.data);
 }
 
@@ -69,17 +87,24 @@ export function createVolunteerProfile(payload) {
 
 export function updateVolunteerAvailability(volunteerId, isAvailable) {
   return api
-    .patch(`/volunteers/${volunteerId}/availability`, { is_available: isAvailable })
+    .patch(`/volunteers/${volunteerId}/availability`, {
+      is_available: isAvailable,
+    })
     .then((res) => res.data);
 }
 
 export function updateVolunteerLocation(volunteerId, lat, lng) {
   return api
-    .patch(`/volunteers/${volunteerId}/location`, { current_lat: lat, current_lng: lng })
+    .patch(`/volunteers/${volunteerId}/location`, {
+      current_lat: lat,
+      current_lng: lng,
+    })
     .then((res) => res.data);
 }
 
-// ---------- Shelters ----------
+// =======================
+// Shelters
+// =======================
 
 export function listShelters() {
   return api.get("/shelters/").then((res) => res.data);
@@ -87,16 +112,26 @@ export function listShelters() {
 
 export function nearbyShelters(lat, lng, radiusKm = 10) {
   return api
-    .get("/shelters/nearby", { params: { lat, lng, radius_km: radiusKm } })
+    .get("/shelters/nearby", {
+      params: {
+        lat,
+        lng,
+        radius_km: radiusKm,
+      },
+    })
     .then((res) => res.data);
 }
 
-// ---------- Resources ----------
+// =======================
+// Resources
+// =======================
 
 export function listResources() {
   return api.get("/resources/").then((res) => res.data);
 }
 
 export function updateResource(resourceId, quantity, status) {
-  return api.patch(`/resources/${resourceId}`, { quantity, status }).then((res) => res.data);
+  return api
+    .patch(`/resources/${resourceId}`, { quantity, status })
+    .then((res) => res.data);
 }
