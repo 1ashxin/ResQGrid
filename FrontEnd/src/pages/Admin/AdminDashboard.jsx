@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../../context/NotificationContext";
 import { listSOSRequests, listVolunteers, listShelters, listResources } from "../../api/client";
 import { transformSOSRequest } from "../../utils/sos";
+import AdminLiveMap from "../../components/shared/AdminLiveMap";
 
 import {
   LayoutDashboard,
@@ -72,12 +73,18 @@ function transformVolunteer(volunteer, sosRequests) {
   const activeMission = sosRequests.find(
     (sos) => sos.assignedVolunteerId === volunteer.user_id
   );
+
   return {
     name: volunteer.full_name,
+
+    lat: volunteer.current_lat,
+    lng: volunteer.current_lng,
+
     location:
       volunteer.current_lat != null && volunteer.current_lng != null
         ? `${volunteer.current_lat.toFixed(3)}, ${volunteer.current_lng.toFixed(3)}`
         : "Unknown",
+
     status: volunteer.is_available ? "Available" : "On Mission",
     task: activeMission ? activeMission.id : "None",
     phone: volunteer.phone,
@@ -88,13 +95,20 @@ function transformShelter(shelter) {
   const percentage = Math.round(
     (shelter.capacity_occupied / shelter.capacity_total) * 100
   );
+
   return {
     name: shelter.name,
+
+    lat: shelter.location_lat,
+    lng: shelter.location_lng,
+
     location:
       shelter.address ||
       `${shelter.location_lat.toFixed(3)}, ${shelter.location_lng.toFixed(3)}`,
+
     capacity: shelter.capacity_total,
     occupied: shelter.capacity_occupied,
+
     status: !shelter.is_active
       ? "Closed"
       : percentage >= 85
@@ -783,7 +797,7 @@ function AdminDashboard() {
               <section className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
 
                 {/* MAP */}
-                <div className="xl:col-span-2 rounded-2xl border border-white/10 bg-[#0d1b2a] p-6">
+                <div className="xl:col-span-2 rounded-2xl border border-white/10 bg-[#0d1b2a] p-6"></div>
 
                   <div className="flex items-center justify-between">
 
@@ -815,109 +829,13 @@ function AdminDashboard() {
 
                   <div className="relative mt-6 h-[360px] overflow-hidden rounded-xl border border-white/5 bg-[#081522]">
 
-                    {/* GRID */}
-                    <div
-                      className="absolute inset-0 opacity-20"
-                      style={{
-                        backgroundImage:
-                          "linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)",
-                        backgroundSize: "40px 40px",
-                      }}
-                    />
+  <AdminLiveMap
+    sosRequests={sosRequests}
+    volunteers={volunteers}
+    shelters={shelters}
+  />
 
-                    {/* RIVER */}
-                    <div className="absolute left-[45%] top-[-20px] h-[420px] w-16 rotate-[18deg] bg-blue-500/10 blur-sm" />
-
-                    {/* LOCATIONS */}
-                    <span className="absolute left-[18%] top-[22%] text-xs text-gray-500">
-                      Kothrud
-                    </span>
-
-                    <span className="absolute left-[66%] top-[17%] text-xs text-gray-500">
-                      Baner
-                    </span>
-
-                    <span className="absolute left-[28%] top-[69%] text-xs text-gray-500">
-                      Aundh
-                    </span>
-
-                    <span className="absolute left-[69%] top-[68%] text-xs text-gray-500">
-                      Shivajinagar
-                    </span>
-
-                    <span className="absolute left-[47%] top-[42%] text-xs text-gray-600">
-                      Deccan
-                    </span>
-
-                    {/* SOS */}
-                    <div className="absolute left-[21%] top-[33%]">
-
-                      <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold shadow-lg shadow-red-500/40">
-
-                        SOS
-
-                        <div className="absolute inset-0 animate-ping rounded-full bg-red-500/30" />
-
-                      </div>
-
-                    </div>
-
-                    <div className="absolute left-[63%] top-[28%]">
-
-                      <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold shadow-lg shadow-red-500/40">
-
-                        SOS
-
-                        <div className="absolute inset-0 animate-ping rounded-full bg-red-500/30" />
-
-                      </div>
-
-                    </div>
-
-                    {/* HIGH */}
-                    <div className="absolute left-[35%] top-[63%]">
-
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-500 text-sm font-bold text-black">
-                        !
-                      </div>
-
-                    </div>
-
-                    {/* VOLUNTEERS */}
-                    <div className="absolute left-[54%] top-[48%]">
-
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-black">
-                        V
-                      </div>
-
-                    </div>
-
-                    <div className="absolute left-[76%] top-[57%]">
-
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-black">
-                        V
-                      </div>
-
-                    </div>
-
-                    {/* LIVE */}
-                    <div className="absolute bottom-4 left-4 rounded-lg border border-white/10 bg-[#07111f]/90 px-4 py-2">
-
-                      <div className="flex items-center gap-2">
-
-                        <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
-
-                        <span className="text-xs text-gray-300">
-                          Live monitoring active
-                        </span>
-
-                      </div>
-
-                    </div>
-
-                  </div>
-
-                </div>
+</div>
 
                 {/* ALERTS */}
                 <div className="rounded-2xl border border-white/10 bg-[#0d1b2a] p-6">
