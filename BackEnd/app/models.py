@@ -30,6 +30,24 @@ def generate_uuid():
     return str(uuid.uuid4())
 
 
+def enum_values(enum_class):
+    """
+    Tells SQLAlchemy to store an Enum column's *value* ("pending") rather
+    than its Python member *name* ("PENDING"), which is what it would use
+    by default.
+
+    This matters because schema.sql -- the source of truth that actually
+    creates these tables -- constrains these columns to the lowercase
+    values, e.g. CHECK (status IN ('pending', 'assigned', ...)). Without
+    this, every INSERT sends 'PENDING' and Postgres rejects the whole row.
+    The lowercase values are also what the API returns and what the
+    frontend matches on, so they're the right thing to store.
+
+    Passed to every SAEnum column below via values_callable=.
+    """
+    return [member.value for member in enum_class]
+
+
 class UserRole(str, enum.Enum):
     """
     The four types of accounts in ResQGrid, per CLAUDE.md. Using a Python
@@ -74,7 +92,7 @@ class User(Base):
     # native_enum=False stores this as plain text in Postgres (matching
     # schema.sql's TEXT + CHECK approach) instead of a special Postgres ENUM
     # type, which is simpler to change later without a database migration.
-    role = Column(SAEnum(UserRole, native_enum=False), nullable=False)
+    role = Column(SAEnum(UserRole, native_enum=False, values_callable=enum_values), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # One user can have one volunteer profile (only relevant if role == volunteer)
@@ -163,7 +181,11 @@ class SOSRequest(Base):
     location_lat = Column(Float, nullable=False)
     location_lng = Column(Float, nullable=False)
 
-    status = Column(SAEnum(SOSStatus, native_enum=False), default=SOSStatus.PENDING, nullable=False)
+    status = Column(
+        SAEnum(SOSStatus, native_enum=False, values_callable=enum_values),
+        default=SOSStatus.PENDING,
+        nullable=False,
+    )
     priority_score = Column(Float, nullable=True)  # filled in later by Member 5's AI priority engine
 
     assigned_volunteer_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=True)
@@ -229,7 +251,11 @@ class Resource(Base):
     name = Column(String, nullable=False)
     quantity = Column(Numeric, nullable=False)
     unit = Column(String, nullable=False)
-    status = Column(SAEnum(ResourceStatus, native_enum=False), default=ResourceStatus.GOOD, nullable=False)
+    status = Column(
+        SAEnum(ResourceStatus, native_enum=False, values_callable=enum_values),
+        default=ResourceStatus.GOOD,
+        nullable=False,
+    )
 
     managed_by_user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=True)
 
