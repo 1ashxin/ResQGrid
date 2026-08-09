@@ -7,28 +7,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-const requests = [
-  {
-    id: 1,
-    emergency: "Flood Emergency",
-    location: "Sector 12, Navi Mumbai",
-    people: 24,
-    reported: "5 mins ago",
-    priority: "High",
-    team: "Unassigned",
-  },
-  {
-    id: 2,
-    emergency: "Medical Assistance",
-    location: "Panvel",
-    people: 8,
-    reported: "12 mins ago",
-    priority: "Medium",
-    team: "Team Alpha",
-  },
-];
-
-export default function NGORequestCard() {
+export default function NGORequestCard({ requests }) {
   return (
     <section className="mt-12">
 
@@ -43,6 +22,12 @@ export default function NGORequestCard() {
         </h2>
 
       </div>
+
+      {requests.length === 0 && (
+        <p className="card-glass rounded-3xl p-8 text-center text-secondary">
+          No active emergency requests right now.
+        </p>
+      )}
 
       <div className="space-y-6">
 

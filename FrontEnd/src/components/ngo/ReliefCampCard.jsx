@@ -5,34 +5,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-const camps = [
-  {
-    id: 1,
-    name: "Camp Alpha",
-    location: "Nerul",
-    people: 126,
-    services: "Medical • Food • Shelter",
-    status: "Operational",
-  },
-  {
-    id: 2,
-    name: "Camp Bravo",
-    location: "Panvel",
-    people: 83,
-    services: "Food • Water",
-    status: "Operational",
-  },
-  {
-    id: 3,
-    name: "Camp Charlie",
-    location: "Vashi",
-    people: 57,
-    services: "Medical • Shelter",
-    status: "Limited Capacity",
-  },
-];
-
-export default function ReliefCampCard() {
+export default function ReliefCampCard({ camps }) {
   return (
     <section className="mt-12">
 
@@ -47,6 +20,12 @@ export default function ReliefCampCard() {
         </h2>
 
       </div>
+
+      {camps.length === 0 && (
+        <p className="card-glass rounded-3xl p-8 text-center text-secondary">
+          No active relief camps yet.
+        </p>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
 

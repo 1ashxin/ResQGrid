@@ -5,38 +5,23 @@ import {
   Bed,
 } from "lucide-react";
 
-const inventory = [
-  {
-    item: "Water Kits",
-    available: 520,
-    status: "Healthy",
-    icon: Droplets,
-    color: "text-brand",
-  },
-  {
-    item: "Food Packs",
-    available: 240,
-    status: "Moderate",
-    icon: Package,
-    color: "text-warning",
-  },
-  {
-    item: "Medical Kits",
-    available: 82,
-    status: "Low",
-    icon: Pill,
-    color: "text-danger",
-  },
-  {
-    item: "Emergency Shelters",
-    available: 48,
-    status: "Healthy",
-    icon: Bed,
-    color: "text-success",
-  },
-];
+// Icons are a display-only concept -- the backend just stores a resource
+// name, so this maps known names to an icon, falling back to a generic
+// box for anything an NGO/admin adds that isn't in this list.
+const RESOURCE_ICONS = {
+  "Drinking Water": Droplets,
+  "Food Packets": Package,
+  "Medical Kits": Pill,
+  "Emergency Tents": Bed,
+};
 
-export default function NGOInventory() {
+const RESOURCE_COLORS = {
+  Healthy: "text-success",
+  Moderate: "text-warning",
+  Low: "text-danger",
+};
+
+export default function NGOInventory({ resources }) {
   return (
     <section className="mt-12">
 
@@ -54,8 +39,9 @@ export default function NGOInventory() {
 
       <div className="grid gap-6 md:grid-cols-2">
 
-        {inventory.map((resource) => {
-          const Icon = resource.icon;
+        {resources.map((resource) => {
+          const Icon = RESOURCE_ICONS[resource.item] || Package;
+          const color = RESOURCE_COLORS[resource.status] || "text-brand";
 
           return (
 
@@ -72,7 +58,7 @@ export default function NGOInventory() {
 
                     <Icon
                       size={28}
-                      className={resource.color}
+                      className={color}
                     />
 
                   </div>

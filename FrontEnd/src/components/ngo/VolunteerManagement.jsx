@@ -5,34 +5,7 @@ import {
   BadgeCheck,
 } from "lucide-react";
 
-const volunteers = [
-  {
-    id: 1,
-    name: "Rahul Sharma",
-    role: "Medical Volunteer",
-    location: "Navi Mumbai",
-    phone: "+91 98765 43210",
-    status: "Available",
-  },
-  {
-    id: 2,
-    name: "Priya Mehta",
-    role: "Search & Rescue",
-    location: "Panvel",
-    phone: "+91 99887 65432",
-    status: "Assigned",
-  },
-  {
-    id: 3,
-    name: "Arjun Patel",
-    role: "Logistics",
-    location: "Vashi",
-    phone: "+91 97654 32109",
-    status: "Available",
-  },
-];
-
-export default function VolunteerManagement() {
+export default function VolunteerManagement({ volunteers }) {
   return (
     <section className="mt-12">
 
@@ -47,6 +20,12 @@ export default function VolunteerManagement() {
         </h2>
 
       </div>
+
+      {volunteers.length === 0 && (
+        <p className="card-glass rounded-3xl p-8 text-center text-secondary">
+          No volunteers registered yet.
+        </p>
+      )}
 
       <div className="space-y-5">
 

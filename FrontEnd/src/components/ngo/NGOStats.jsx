@@ -5,34 +5,37 @@ import {
   PackageCheck,
 } from "lucide-react";
 
-const stats = [
-  {
-    title: "Active Volunteers",
-    value: "142",
-    icon: Users,
-    color: "text-brand",
-  },
-  {
-    title: "Active SOS Requests",
-    value: "18",
-    icon: TriangleAlert,
-    color: "text-danger",
-  },
-  {
-    title: "Relief Camps",
-    value: "06",
-    icon: Tent,
-    color: "text-warning",
-  },
-  {
-    title: "Resources Delivered",
-    value: "582",
-    icon: PackageCheck,
-    color: "text-success",
-  },
-];
+export default function NGOStats({ values }) {
+  const stats = [
+    {
+      title: "Active Volunteers",
+      value: values.activeVolunteers,
+      icon: Users,
+      color: "text-brand",
+    },
+    {
+      title: "Active SOS Requests",
+      value: values.activeSOS,
+      icon: TriangleAlert,
+      color: "text-danger",
+    },
+    {
+      title: "Relief Camps",
+      value: values.reliefCamps,
+      icon: Tent,
+      color: "text-warning",
+    },
+    {
+      // The backend has no "delivered" concept -- Resource only tracks
+      // current on-hand quantity, not a cumulative shipped count -- so
+      // this shows total stock on hand instead, labeled accordingly.
+      title: "Resources On Hand",
+      value: values.resourcesOnHand.toLocaleString(),
+      icon: PackageCheck,
+      color: "text-success",
+    },
+  ];
 
-export default function NGOStats() {
   return (
     <section className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
 
