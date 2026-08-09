@@ -1,0 +1,31 @@
+name,address,city,state,location_lat,location_lng,capacity_total,capacity_occupied,is_active,managed_by_ngo
+Guwahati District Community Shelter,Fancy Bazar,Guwahati,Assam,26.1445,91.7362,300,180,True,Sahyog Relief Foundation
+Brahmaputra Flood Relief Camp,Pandu,Guwahati,Assam,26.1584,91.6612,250,90,True,Sahyog Relief Foundation
+Uttarkashi Landslide Relief Camp,Main Town,Uttarkashi,Uttarakhand,30.7268,78.4354,150,60,True,Uttarakhand Disaster Response Trust
+Dehradun Government School Shelter,Rajpur Road,Dehradun,Uttarakhand,30.3165,78.0322,200,45,True,Uttarakhand Disaster Response Trust
+Chennai Marina Cyclone Shelter,Marina Beach,Chennai,Tamil Nadu,13.0827,80.2707,400,220,True,Coastal Relief Network
+Cuddalore Coastal Relief Camp,Beach Road,Cuddalore,Tamil Nadu,11.748,79.7714,180,100,True,Coastal Relief Network
+Alappuzha Flood Relief Camp,Punchiri,Alappuzha,Kerala,9.4981,76.3388,220,150,True,Kerala Flood Response Collective
+Kochi Community Hall Shelter,MG Road,Kochi,Kerala,9.9312,76.2673,260,130,True,Kerala Flood Response Collective
+Puri Cyclone Shelter,Grand Road,Puri,Odisha,19.8135,85.8312,350,200,True,Odisha Cyclone Sahayata Samiti
+Bhubaneswar Relief Camp,Janpath,Bhubaneswar,Odisha,20.2961,85.8245,300,110,True,Odisha Cyclone Sahayata Samiti
+Muzaffarpur Flood Relief Camp,Station Road,Muzaffarpur,Bihar,26.1225,85.3906,220,140,True,Bihar Baadh Rahat Sangathan
+Patna Riverbank Relief Camp,Fraser Road,Patna,Bihar,25.5941,85.1376,280,95,True,Bihar Baadh Rahat Sangathan
+Bhuj Earthquake Relief Shelter,Station Road,Bhuj,Gujarat,23.242,69.6669,190,50,True,Gujarat Emergency Aid Trust
+Ahmedabad Emergency Shelter,CG Road,Ahmedabad,Gujarat,23.0225,72.5714,240,60,True,Gujarat Emergency Aid Trust
+Delhi Yamuna Flood Relief Camp,Kashmere Gate,Delhi,Delhi,28.7041,77.1025,350,270,True,Delhi NCR Disaster Volunteers
+Kolkata Cyclone Relief Camp,Park Street,Kolkata,West Bengal,22.5726,88.3639,300,160,True,Bengal Relief and Rehabilitation Society
+Digha Coastal Shelter,Sea Beach,Digha,West Bengal,21.6274,87.5083,150,70,True,Bengal Relief and Rehabilitation Society
+Srinagar Flood Relief Camp,Lal Chowk,Srinagar,Jammu and Kashmir,34.0837,74.7973,200,80,True,Kashmir Valley Relief Mission
+Imphal Community Relief Camp,Kanglapat,Imphal,Manipur,24.817,93.9368,130,55,True,Northeast Humanitarian Alliance
+Hyderabad Urban Flood Shelter,Abids,Hyderabad,Telangana,17.385,78.4867,220,90,True,Deccan Disaster Response Team
+Bengaluru Community Relief Center,MG Road,Bengaluru,Karnataka,12.9716,77.5946,180,40,True,Karnataka Aapada Sahayog Sangh
+Jaipur Drought Relief Camp,MI Road,Jaipur,Rajasthan,26.9124,75.7873,150,30,True,Rajasthan Rural Relief Trust
+Bhopal Relief Shelter,MP Nagar,Bhopal,Madhya Pradesh,23.2599,77.4126,190,70,True,Madhya Pradesh Sewa Samiti
+Ranchi Emergency Shelter,Main Road,Ranchi,Jharkhand,23.3441,85.3096,140,45,True,Jharkhand Relief and Welfare Society
+Raipur Flood Relief Camp,GE Road,Raipur,Chhattisgarh,21.2514,81.6296,160,55,True,Chhattisgarh Disaster Aid Foundation
+Visakhapatnam Cyclone Shelter,Beach Road,Visakhapatnam,Andhra Pradesh,17.6868,83.2185,270,150,True,Andhra Pradesh Flood Response Trust
+Vijayawada Flood Relief Camp,MG Road,Vijayawada,Andhra Pradesh,16.5062,80.648,210,90,True,Andhra Pradesh Flood Response Trust
+Panaji Coastal Relief Camp,18th June Road,Panaji,Goa,15.4909,73.8278,90,20,True,Goa Coastal Emergency Trust
+Shimla Landslide Relief Camp,Mall Road,Shimla,Himachal Pradesh,31.1048,77.1734,110,35,True,Himachal Landslide Relief Society
+Kullu Flash Flood Relief Camp,Main Market,Kullu,Himachal Pradesh,31.9576,77.1095,100,25,False,Himachal Landslide Relief Society
