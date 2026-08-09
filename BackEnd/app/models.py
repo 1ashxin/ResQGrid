@@ -137,9 +137,7 @@ class VolunteerProfile(Base):
 class NGOProfile(Base):
     """
     Extra details specific to NGOs, kept in their own table so the shared
-    'users' table stays simple across all four roles. Mirrors
-    VolunteerProfile's structure -- no location/availability columns
-    though, since those are volunteer-specific concepts.
+    'users' table stays simple across all four roles.
     """
     __tablename__ = "ngo_profiles"
 
@@ -150,6 +148,11 @@ class NGOProfile(Base):
     contact_person = Column(String, nullable=False)
     phone = Column(String, nullable=False)
     address = Column(String, nullable=True)
+
+    # Added geolocation fields matching VolunteerProfile and Shelter
+    location_lat = Column(Float, nullable=True)
+    location_lng = Column(Float, nullable=True)
+
     volunteer_count = Column(Integer, nullable=True)
     operation_areas = Column(String, nullable=True)
     emergency_contact = Column(String, nullable=True)

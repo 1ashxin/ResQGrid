@@ -12,7 +12,6 @@ Pydantic is the library that powers this: it automatically checks incoming
 data matches these shapes (e.g. rejects a request missing "email"), and
 converts Python objects into clean JSON for responses.
 """
-
 import enum
 from datetime import datetime
 from typing import Optional
@@ -65,8 +64,6 @@ class UserOut(BaseModel):
     role: UserRole
     created_at: datetime
 
-    # Lets Pydantic build this schema directly from a SQLAlchemy model
-    # object (models.User), instead of only from a plain dict.
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -121,6 +118,8 @@ class NGOProfileCreate(BaseModel):
     contact_person: str
     phone: str
     address: Optional[str] = None
+    location_lat: Optional[float] = None
+    location_lng: Optional[float] = None
     volunteer_count: Optional[int] = None
     operation_areas: Optional[str] = None
     emergency_contact: Optional[str] = None
@@ -135,6 +134,8 @@ class NGOProfileOut(BaseModel):
     contact_person: str
     phone: str
     address: Optional[str] = None
+    location_lat: Optional[float] = None
+    location_lng: Optional[float] = None
     volunteer_count: Optional[int] = None
     operation_areas: Optional[str] = None
     emergency_contact: Optional[str] = None
@@ -180,7 +181,6 @@ class SOSRequestOut(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-    priority_score: Optional[int] = None
 
 
 # ---------- Shelter schemas ----------

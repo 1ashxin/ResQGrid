@@ -6,12 +6,11 @@ currently inside (capacity tracking). All endpoints here start with
 "/shelters".
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from .. import models, schemas, geo_spatial
 from ..database import get_db
-from ..geo import haversine_km
 
 router = APIRouter(prefix="/shelters", tags=["Shelters"])
 
@@ -45,37 +44,43 @@ def list_shelters(db: Session = Depends(get_db)):
 
 
 @router.get("/nearby", response_model=list[schemas.ShelterWithDistanceOut])
-def nearby_shelters(lat: float, lng: float, radius_km: float = 10, limit: int = 10, db: Session = Depends(get_db)):
+def nearby_shelters(
+    lat: float = Query(..., description="Latitude of point"),
+    lng: float = Query(..., description="Longitude of point"),
+    radius_km: float = Query(10.0, description="Search radius in kilometers"),
+    limit: int = Query(10, description="Max results"),
+    db: Session = Depends(get_db)
+):
     """
-    Returns active shelters within radius_km of the given point, closest
-    first. e.g. GET /shelters/nearby?lat=19.076&lng=72.8777&radius_km=5 --
-    used to suggest where to route a victim/volunteer near a given SOS.
+    Returns active shelters within radius_km of the given point, closest first.
+    e.g. GET /shelters/nearby?lat=19.076&lng=72.8777&radius_km=5
 
-    MEMBER 4 HOOK: this filters/ranks every active shelter in Python using
-    plain lat/lng math (see geo.haversine_km). Once PostGIS is enabled,
-    this should become a single ST_DWithin query against a
-    geography(Point) column with a GIST index instead, which scales far
-    better with a large number of shelters -- the response shape
-    (distance_km per shelter) should stay the same.
-
-    NOTE: this route must stay registered before GET /{shelter_id} below,
-    otherwise FastAPI would try to treat "nearby" as a shelter_id.
+    Uses PostGIS ST_DWithin and ST_Distance spatial index queries via geo_spatial.py.
     """
-    active_shelters = db.query(models.Shelter).filter(models.Shelter.is_active == True).all()
-
-    within_radius = [
-        (shelter, haversine_km(lat, lng, shelter.location_lat, shelter.location_lng))
-        for shelter in active_shelters
-    ]
-    within_radius = [pair for pair in within_radius if pair[1] <= radius_km]
-    within_radius.sort(key=lambda pair: pair[1])
+    radius_meters = radius_km * 1000.0
+    
+    # Executes PostGIS spatial query indexed on shelter geography column
+    results = geo_spatial.find_nearest_shelters(
+        db, 
+        lat=lat, 
+        lng=lng, 
+        radius_meters=radius_meters, 
+        limit=limit
+    )
 
     return [
         schemas.ShelterWithDistanceOut(
-            **schemas.ShelterOut.model_validate(shelter).model_dump(),
-            distance_km=round(distance, 2),
+            id=r["id"],
+            name=r["name"],
+            address=r["address"],
+            location_lat=r["location_lat"],
+            location_lng=r["location_lng"],
+            capacity_total=r["capacity_total"],
+            capacity_occupied=r["capacity_occupied"],
+            is_active=r["is_active"],
+            distance_km=r["distance_km"]
         )
-        for shelter, distance in within_radius[:limit]
+        for r in results
     ]
 
 
