@@ -3,16 +3,18 @@ WHAT THIS FILE DOES (plain English):
 This file marks the 'app' folder as a Python "package" so its files can be
 imported using dotted paths like `app.main`.
 
-It also makes the repo root importable, since core_security_and_logic/
-(Member 5's priority engine and security work) lives one level above
-BackEnd/, not inside it. This runs before any submodule of `app` is
-loaded, regardless of entry point (uvicorn, tests, scripts), so
-`import core_security_and_logic...` works anywhere in the app.
+core_security_and_logic/ (Member 5's priority engine and security work)
+now lives inside BackEnd/, alongside this app/ folder, so it deploys
+correctly on hosts like Railway that only build the BackEnd/ directory
+(a repo-root sibling folder is invisible to those builds). This still
+adds the BackEnd/ folder itself to sys.path as a safety net, so
+`import core_security_and_logic...` keeps working no matter what the
+process's working directory or entry point is (uvicorn, tests, scripts).
 """
 
 import sys
 from pathlib import Path
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
+_BACKEND_ROOT = Path(__file__).resolve().parent.parent
+if str(_BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(_BACKEND_ROOT))
