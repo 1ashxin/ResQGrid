@@ -27,8 +27,8 @@ async def seed_database(pool: asyncpg.Pool):
     
     async with pool.acquire() as conn:
         async with conn.transaction():
-            # 1. Seed NGOs
-            ngos_df = pd.read_csv("ngos.csv")
+            # 1. Seed NGOs - Pointing to ../seeds/
+            ngos_df = pd.read_csv("../seeds/ngos.csv")
             ngo_user_map = {}
 
             for _, row in ngos_df.iterrows():
@@ -88,8 +88,8 @@ async def seed_database(pool: asyncpg.Pool):
                     str(row["services"]).strip()
                 )
 
-            # 2. Seed Shelters
-            shelters_df = pd.read_csv("shelters.csv")
+            # 2. Seed Shelters - Pointing to ../seeds/
+            shelters_df = pd.read_csv("../seeds/shelters.csv")
             for _, row in shelters_df.iterrows():
                 ngo_name = str(row["managed_by_ngo"]).strip()
                 managed_by_id = ngo_user_map.get(ngo_name)
@@ -116,8 +116,8 @@ async def seed_database(pool: asyncpg.Pool):
                     managed_by_id
                 )
 
-            # 3. Seed Resources
-            resources_df = pd.read_csv("resources.csv")
+            # 3. Seed Resources - Pointing to ../seeds/
+            resources_df = pd.read_csv("../seeds/resources.csv")
             for _, row in resources_df.iterrows():
                 ngo_name = str(row["managed_by_ngo"]).strip()
                 managed_by_id = ngo_user_map.get(ngo_name)
@@ -219,4 +219,4 @@ async def get_nearest_aid(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("seed_and_query:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app.seed_query:app", host="0.0.0.0", port=8000, reload=True)
