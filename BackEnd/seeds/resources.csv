@@ -1,0 +1,52 @@
+name,quantity,unit,status,city,state,managed_by_ngo
+Drinking Water,5000,liters,moderate,Guwahati,Assam,Sahyog Relief Foundation
+Rice,1200,kg,good,Guwahati,Assam,Sahyog Relief Foundation
+Blankets,600,count,good,Guwahati,Assam,Sahyog Relief Foundation
+Rescue Boats,8,count,moderate,Guwahati,Assam,Sahyog Relief Foundation
+ORS Packets,2000,count,good,Guwahati,Assam,Sahyog Relief Foundation
+Tarpaulin Sheets,300,count,low,Uttarkashi,Uttarakhand,Uttarakhand Disaster Response Trust
+First Aid Kits,150,count,good,Uttarkashi,Uttarakhand,Uttarakhand Disaster Response Trust
+Ready-to-eat Meals,900,packets,moderate,Dehradun,Uttarakhand,Uttarakhand Disaster Response Trust
+Torches,120,count,good,Dehradun,Uttarakhand,Uttarakhand Disaster Response Trust
+Drinking Water,8000,liters,good,Chennai,Tamil Nadu,Coastal Relief Network
+Tents,250,count,moderate,Chennai,Tamil Nadu,Coastal Relief Network
+Solar Lanterns,180,count,good,Chennai,Tamil Nadu,Coastal Relief Network
+Dry Ration Kits,500,count,low,Cuddalore,Tamil Nadu,Coastal Relief Network
+Diesel for Generators,2000,liters,moderate,Cuddalore,Tamil Nadu,Coastal Relief Network
+Drinking Water,6000,liters,moderate,Alappuzha,Kerala,Kerala Flood Response Collective
+Rescue Boats,12,count,good,Alappuzha,Kerala,Kerala Flood Response Collective
+Medical Kits,200,count,good,Kochi,Kerala,Kerala Flood Response Collective
+Mosquito Nets,400,count,moderate,Kochi,Kerala,Kerala Flood Response Collective
+Cyclone-proof Tents,180,count,good,Puri,Odisha,Odisha Cyclone Sahayata Samiti
+Rice,1500,kg,good,Puri,Odisha,Odisha Cyclone Sahayata Samiti
+Cooking Oil,400,liters,moderate,Bhubaneswar,Odisha,Odisha Cyclone Sahayata Samiti
+Water Purification Tablets,5000,count,good,Bhubaneswar,Odisha,Odisha Cyclone Sahayata Samiti
+Dal (Lentils),800,kg,moderate,Muzaffarpur,Bihar,Bihar Baadh Rahat Sangathan
+Drinking Water,4000,liters,low,Muzaffarpur,Bihar,Bihar Baadh Rahat Sangathan
+Sanitation Kits,300,count,good,Patna,Bihar,Bihar Baadh Rahat Sangathan
+Baby Food Packets,250,count,moderate,Patna,Bihar,Bihar Baadh Rahat Sangathan
+Tents,200,count,good,Bhuj,Gujarat,Gujarat Emergency Aid Trust
+Blankets,350,count,moderate,Bhuj,Gujarat,Gujarat Emergency Aid Trust
+First Aid Kits,180,count,good,Ahmedabad,Gujarat,Gujarat Emergency Aid Trust
+Drinking Water,7000,liters,good,Delhi,Delhi,Delhi NCR Disaster Volunteers
+Ready-to-eat Meals,1200,packets,moderate,Delhi,Delhi,Delhi NCR Disaster Volunteers
+Blankets,500,count,good,Delhi,Delhi,Delhi NCR Disaster Volunteers
+Rescue Boats,6,count,moderate,Kolkata,West Bengal,Bengal Relief and Rehabilitation Society
+Tarpaulin Sheets,400,count,good,Kolkata,West Bengal,Bengal Relief and Rehabilitation Society
+Dry Ration Kits,350,count,low,Digha,West Bengal,Bengal Relief and Rehabilitation Society
+Drinking Water,3000,liters,moderate,Srinagar,Jammu and Kashmir,Kashmir Valley Relief Mission
+Medical Kits,120,count,good,Srinagar,Jammu and Kashmir,Kashmir Valley Relief Mission
+Rice,600,kg,moderate,Imphal,Manipur,Northeast Humanitarian Alliance
+Blankets,220,count,good,Imphal,Manipur,Northeast Humanitarian Alliance
+Water Tankers,10,count,moderate,Hyderabad,Telangana,Deccan Disaster Response Team
+Medical Kits,150,count,good,Hyderabad,Telangana,Deccan Disaster Response Team
+Water Purification Tablets,3000,count,good,Bengaluru,Karnataka,Karnataka Aapada Sahayog Sangh
+Dry Ration Kits,300,count,moderate,Jaipur,Rajasthan,Rajasthan Rural Relief Trust
+First Aid Kits,90,count,good,Bhopal,Madhya Pradesh,Madhya Pradesh Sewa Samiti
+Tarpaulin Sheets,150,count,low,Ranchi,Jharkhand,Jharkhand Relief and Welfare Society
+Drinking Water,2500,liters,moderate,Raipur,Chhattisgarh,Chhattisgarh Disaster Aid Foundation
+Cyclone-proof Tents,220,count,good,Visakhapatnam,Andhra Pradesh,Andhra Pradesh Flood Response Trust
+Rice,900,kg,moderate,Vijayawada,Andhra Pradesh,Andhra Pradesh Flood Response Trust
+First Aid Kits,60,count,good,Panaji,Goa,Goa Coastal Emergency Trust
+Tarpaulin Sheets,80,count,moderate,Shimla,Himachal Pradesh,Himachal Landslide Relief Society
+Ready-to-eat Meals,300,packets,low,Kullu,Himachal Pradesh,Himachal Landslide Relief Society
