@@ -4,6 +4,8 @@ import DashboardLayout from "../../layouts/DashboardLayout";
 
 import VolunteerHeader from "../../components/volunteer/VolunteerHeader";
 import VolunteerStats from "../../components/volunteer/VolunteerStats";
+import RequestCard from "../../components/volunteer/RequestCard";
+
 import ResponseMap from "../../components/shared/ResponseMap";
 
 import {
@@ -16,7 +18,7 @@ import {
 
 import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../../context/NotificationContext";
-import { listSOSRequests, assignVolunteer } from "../../api/client";
+import { listSOSRequests, assignVolunteer, updateSOSStatus } from "../../api/client";
 import { updateVolunteerLocation } from "../../services/api";
 import { transformSOSRequest } from "../../utils/sos";
 
@@ -24,7 +26,7 @@ export default function VolunteerDashboard() {
   const { user } = useAuth();
   const { showToast } = useNotification();
   const [requests, setRequests] = useState([]);
-  const [acceptingId, setAcceptingId] = useState(null);
+  const [activeMission, setActiveMission] = useState(null);
 
   const isVolunteer = !!user && user.role === "volunteer";
 
@@ -85,16 +87,25 @@ export default function VolunteerDashboard() {
     return <Navigate to="/login" replace />;
   }
 
-  async function handleAccept(requestId) {
-    setAcceptingId(requestId);
+  async function handleAccept(request) {
     try {
-      await assignVolunteer(requestId, user.id);
-      setRequests((prev) => prev.filter((r) => r.id !== requestId));
+      await assignVolunteer(request.id, user.id);
+      setRequests((prev) => prev.filter((r) => r.id !== request.id));
+      setActiveMission(request);
       showToast("You have accepted the emergency request.", "success");
     } catch {
       showToast("Couldn't accept the request. Please try again.", "error");
+    }
+  }
+
+  async function handleComplete() {
+    try {
+      await updateSOSStatus(activeMission.id, "resolved");
+      showToast("Mission marked as completed.", "success");
+    } catch {
+      showToast("Couldn't update the request status. Please try again.", "error");
     } finally {
-      setAcceptingId(null);
+      setActiveMission(null);
     }
   }
 
@@ -105,134 +116,151 @@ export default function VolunteerDashboard() {
 
       <VolunteerStats />
 
-      {/* Incoming Requests */}
-      <section className="mt-10">
+      <section className="mt-12">
 
-        <div className="mb-8">
+        {!activeMission && (
 
-          <p className="section-label text-sm">
-            Incoming Requests
-          </p>
+          <>
+            <div className="mb-8">
 
-          <h2 className="section-title mt-2 text-4xl">
-            Nearby Emergencies
-          </h2>
+              <p className="text-brand text-sm font-semibold uppercase tracking-[0.25em]">
+                Incoming Requests
+              </p>
 
-        </div>
+              <h2 className="mt-2 text-4xl font-bold text-primary">
+                Nearby Emergencies
+              </h2>
 
-        {requests.length === 0 && (
+            </div>
 
-          <div className="card-glass rounded-3xl p-12 text-center">
+            {requests.length === 0 && (
+              <div className="card-glass rounded-3xl p-8 text-center text-secondary">
+                No pending requests right now.
+              </div>
+            )}
 
-            <CheckCircle2
-              size={60}
-              className="mx-auto text-success"
-            />
+            <div className="space-y-6">
 
-            <h3 className="section-title mt-6 text-3xl">
-              No Active Requests
-            </h3>
+              {requests.map((request) => (
 
-            <p className="section-subtitle mt-3">
-              New SOS requests will automatically appear here.
-            </p>
+                <RequestCard
+                  key={request.id}
+                  request={{
+                    ...request,
+                    emergency: request.request,
+                    phone: request.victimPhone,
+                    distance: "N/A",
+                  }}
+                  onAccept={handleAccept}
+                />
+
+              ))}
+
+            </div>
+
+          </>
+
+        )}
+
+        {activeMission && (
+
+          <div className="card-glass rounded-3xl p-8">
+
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+
+              <div className="flex items-center gap-5">
+
+                <div className="rounded-3xl bg-danger p-5">
+
+                  <Flame
+                    size={36}
+                    className="text-white"
+                  />
+
+                </div>
+
+                <div>
+
+                  <p className="text-brand text-sm uppercase tracking-[0.25em]">
+                    Current Mission
+                  </p>
+
+                  <h2 className="mt-2 text-3xl font-bold text-primary">
+                    {activeMission.request}
+                  </h2>
+
+                  <p className="mt-2 text-secondary">
+                    You have accepted this emergency request.
+                  </p>
+
+                </div>
+
+              </div>
+
+              <div className="rounded-full bg-success px-5 py-2 font-semibold text-white">
+                Assigned
+              </div>
+
+            </div>
+
+            <div className="mt-10 grid gap-6 md:grid-cols-2">
+
+              <InfoCard
+                icon={<Users className="text-brand" />}
+                title="People Requiring Help"
+                value={activeMission.people}
+              />
+
+              <InfoCard
+                icon={<MapPin className="text-danger" />}
+                title="Location"
+                value={activeMission.location}
+              />
+
+              <InfoCard
+                icon={<Phone className="text-success" />}
+                title="Contact Number"
+                value={activeMission.victimPhone}
+              />
+
+              <InfoCard
+                title="Victim Name"
+                value={activeMission.victimName}
+              />
+
+            </div>
+
+            <div className="mt-8 grid gap-4 md:grid-cols-2">
+
+              <button className="btn-success rounded-2xl py-4 font-semibold">
+                Call Victim
+              </button>
+
+              <button className="btn-primary rounded-2xl py-4 font-semibold">
+                Navigate
+              </button>
+
+            </div>
+
+            <button
+              onClick={handleComplete}
+              className="btn-danger mt-6 w-full rounded-2xl py-4 font-semibold"
+            >
+              <CheckCircle2 size={18} className="mr-2 inline" />
+              Complete Mission
+            </button>
 
           </div>
 
         )}
 
-        <div className="space-y-8">
-
-          {requests.map((requestData) => (
-
-            <div
-              key={requestData.id}
-              className="card-glass rounded-3xl p-8"
-            >
-
-              <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-
-                <div className="flex items-center gap-5">
-
-                  <div className="card-glass rounded-3xl p-5">
-
-                    <Flame
-                      size={36}
-                      className="text-danger"
-                    />
-
-                  </div>
-
-                  <div>
-
-                    <h2 className="section-title text-3xl">
-                      {requestData.request}
-                    </h2>
-
-                    <p className="section-subtitle mt-2">
-                      {requestData.time}
-                    </p>
-
-                  </div>
-
-                </div>
-
-                <div className="rounded-full bg-danger px-5 py-2 font-semibold text-primary">
-                  {requestData.priority}
-                </div>
-
-              </div>
-
-              <div className="mt-10 grid gap-6 md:grid-cols-2">
-
-                <InfoCard
-                  icon={<Users className="text-brand" />}
-                  title="People Requiring Help"
-                  value={requestData.people}
-                />
-
-                <InfoCard
-                  icon={<MapPin className="text-danger" />}
-                  title="Location"
-                  value={requestData.location}
-                />
-
-                <InfoCard
-                  icon={<Phone className="text-success" />}
-                  title="Contact Number"
-                  value={requestData.victimPhone}
-                />
-
-                <InfoCard
-                  title="Victim Name"
-                  value={requestData.victimName}
-                />
-
-              </div>
-
-              <button
-                onClick={() => handleAccept(requestData.id)}
-                disabled={acceptingId === requestData.id}
-                className="btn-success mt-10 w-full rounded-2xl py-4 text-lg font-semibold transition-all duration-300 hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {acceptingId === requestData.id ? "Accepting..." : "Accept Request"}
-              </button>
-
-            </div>
-
-          ))}
-
-        </div>
-
       </section>
 
-      {/* Live Response Map */}
-
-      <section className="mt-12">
+      <div className="mt-12">
 
         <ResponseMap />
 
-      </section>
+      </div>
 
     </DashboardLayout>
   );
@@ -240,15 +268,15 @@ export default function VolunteerDashboard() {
 
 function InfoCard({ icon, title, value }) {
   return (
-    <div className="card-glass rounded-2xl p-6">
+    <div className="bg-card rounded-2xl p-5">
 
       {icon && <div className="mb-3">{icon}</div>}
 
-      <p className="text-muted text-sm">
+      <p className="text-sm text-muted">
         {title}
       </p>
 
-      <h3 className="section-title mt-2 text-xl">
+      <h3 className="mt-2 text-xl font-semibold text-primary">
         {value}
       </h3>
 
