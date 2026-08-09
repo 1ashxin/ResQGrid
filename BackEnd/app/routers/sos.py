@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas, geo_spatial
 from ..database import get_db
 from ..geo import haversine_km
+from core_security_and_logic.priority_engine import calculate_priority
 
 router = APIRouter(prefix="/sos", tags=["SOS Requests"])
 
@@ -23,6 +24,11 @@ def create_sos_request(payload: schemas.SOSRequestCreate, db: Session = Depends(
     fields are automatically encrypted before hitting the database (see
     EncryptedString in security.py) -- we don't have to do anything extra
     here for that; SQLAlchemy handles it for us behind the scenes.
+
+    priority_score is computed immediately from the description via
+    Member 5's priority engine (core_security_and_logic/priority_engine.py),
+    instead of staying null until someone calls PATCH /sos/{id}/priority by
+    hand. That endpoint still exists for manual re-scoring/overrides.
     """
     new_request = models.SOSRequest(
         victim_name=payload.victim_name,
@@ -30,6 +36,7 @@ def create_sos_request(payload: schemas.SOSRequestCreate, db: Session = Depends(
         description=payload.description,
         location_lat=payload.location_lat,
         location_lng=payload.location_lng,
+        priority_score=calculate_priority(payload.description),
     )
     db.add(new_request)
     db.commit()
