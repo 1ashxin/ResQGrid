@@ -2,6 +2,7 @@ from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
+
 def update_volunteer_location(
     db: Session, 
     user_id: str, 
@@ -72,12 +73,79 @@ def find_nearest_volunteers_to_sos(
     return [dict(r._mapping) for r in rows]
 
 
-# The three functions below keep the PostGIS geography column in sync
-# whenever a row is created/updated through the plain lat/lng endpoints in
-# routers/sos.py, routers/shelters.py, and routers/volunteers.py -- so
-# spatial queries work on every row, not just ones touched via the
-# /geo/* endpoints above. Called after the row already exists (post-commit),
-# so they update by primary key rather than returning a full row.
+def find_nearest_shelters(
+    db: Session,
+    lat: float,
+    lng: float,
+    radius_meters: float = 50000.0,
+    limit: int = 10
+) -> List[Dict[str, Any]]:
+    """
+    Finds active shelters nearest to given (lat, lng), sorted strictly by distance ascending.
+    Leverages the shelters.location PostGIS geography column.
+    """
+    query = text("""
+        SELECT 
+            s.id,
+            s.name,
+            s.address,
+            s.location_lat,
+            s.location_lng,
+            s.capacity_total,
+            s.capacity_occupied,
+            (s.capacity_total - s.capacity_occupied) AS capacity_available,
+            s.is_active,
+            ROUND(ST_Distance(s.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography)::numeric, 2) AS distance_meters,
+            ROUND((ST_Distance(s.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) / 1000.0)::numeric, 2) AS distance_km
+        FROM shelters s
+        WHERE s.is_active = TRUE
+          AND s.location IS NOT NULL
+          AND ST_DWithin(s.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radius)
+        ORDER BY distance_meters ASC
+        LIMIT :limit;
+    """)
+
+    result = db.execute(query, {"lat": lat, "lng": lng, "radius": radius_meters, "limit": limit})
+    rows = result.fetchall()
+
+    return [dict(r._mapping) for r in rows]
+
+
+def find_nearest_ngos(
+    db: Session,
+    lat: float,
+    lng: float,
+    radius_meters: float = 50000.0,
+    limit: int = 10
+) -> List[Dict[str, Any]]:
+    """
+    Finds NGOs nearest to given (lat, lng), sorted strictly by distance ascending.
+    """
+    query = text("""
+        SELECT 
+            np.id,
+            np.org_name,
+            np.contact_person,
+            np.phone,
+            np.address,
+            np.services,
+            np.emergency_contact,
+            ROUND(ST_Distance(np.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography)::numeric, 2) AS distance_meters,
+            ROUND((ST_Distance(np.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) / 1000.0)::numeric, 2) AS distance_km
+        FROM ngo_profiles np
+        WHERE np.location IS NOT NULL
+          AND ST_DWithin(np.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radius)
+        ORDER BY distance_meters ASC
+        LIMIT :limit;
+    """)
+
+    result = db.execute(query, {"lat": lat, "lng": lng, "radius": radius_meters, "limit": limit})
+    rows = result.fetchall()
+
+    return [dict(r._mapping) for r in rows]
+
+
+# PostGIS Geography Synchronization Helpers
 
 def sync_volunteer_geography(db: Session, volunteer_profile_id: str, latitude: float, longitude: float) -> None:
     """Updates current_location for a volunteer profile, looked up by its own id (not user_id)."""
@@ -114,5 +182,18 @@ def sync_shelter_geography(db: Session, shelter_id: str, latitude: float, longit
             WHERE id = :id
         """),
         {"lat": latitude, "lng": longitude, "id": shelter_id},
+    )
+    db.commit()
+
+
+def sync_ngo_geography(db: Session, ngo_profile_id: str, latitude: float, longitude: float) -> None:
+    """Updates the location geography column for an NGO profile."""
+    db.execute(
+        text("""
+            UPDATE ngo_profiles
+            SET location = ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+            WHERE id = :id
+        """),
+        {"lat": latitude, "lng": longitude, "id": ngo_profile_id},
     )
     db.commit()
