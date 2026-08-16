@@ -1,40 +1,14 @@
 import {
-  Hospital,
   Tent,
-  UtensilsCrossed,
   MapPin,
-  Phone,
-  ArrowRight,
+  Users,
 } from "lucide-react";
 
-const resources = [
-  {
-    icon: Hospital,
-    name: "City General Hospital",
-    type: "Emergency Medical Care",
-    distance: "1.8 km",
-    phone: "102",
-    color: "text-success",
-  },
-  {
-    icon: Tent,
-    name: "Relief Camp Alpha",
-    type: "Temporary Shelter",
-    distance: "2.4 km",
-    phone: "Available On Arrival",
-    color: "text-warning",
-  },
-  {
-    icon: UtensilsCrossed,
-    name: "Community Food Centre",
-    type: "Food & Drinking Water",
-    distance: "3.1 km",
-    phone: "1800-555-101",
-    color: "text-brand",
-  },
-];
-
-export default function QuickieHelpCard() {
+// Lists the shelters genuinely closest to the victim, with distances
+// measured from their reported coordinates. This previously showed three
+// invented places ("City General Hospital, 1.8 km", etc.) that existed
+// nowhere in the system and never changed.
+export default function QuickieHelpCard({ shelters = [] }) {
   return (
     <section className="card-glass rounded-3xl p-8">
 
@@ -54,67 +28,73 @@ export default function QuickieHelpCard() {
 
       </div>
 
-      <div className="mt-8 space-y-5">
+      {shelters.length === 0 ? (
 
-        {resources.map((resource) => {
-          const Icon = resource.icon;
+        <p className="section-subtitle mt-8">
+          Nearby shelters will appear here once your location has been
+          shared with responders.
+        </p>
 
-          return (
+      ) : (
+
+        <div className="mt-8 space-y-5">
+
+          {shelters.map((shelter) => (
+
             <div
-              key={resource.name}
+              key={shelter.name}
               className="bg-card rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1"
             >
 
-              <div className="flex items-start justify-between">
+              <div className="flex gap-4">
 
-                <div className="flex gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
 
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+                  <Tent
+                    size={26}
+                    className="text-warning"
+                  />
 
-                    <Icon
-                      size={26}
-                      className={resource.color}
-                    />
+                </div>
 
-                  </div>
+                <div>
 
-                  <div>
+                  <h3 className="text-xl font-semibold text-primary">
+                    {shelter.name}
+                  </h3>
 
-                    <h3 className="text-xl font-semibold text-primary">
-                      {resource.name}
-                    </h3>
+                  <p className="mt-1 text-secondary">
+                    {shelter.location}
+                  </p>
 
-                    <p className="mt-1 text-secondary">
-                      {resource.type}
-                    </p>
+                  <div className="mt-4 flex flex-wrap gap-5">
 
-                    <div className="mt-4 flex flex-wrap gap-5">
+                    <div className="flex items-center gap-2">
 
-                      <div className="flex items-center gap-2">
+                      <MapPin
+                        size={16}
+                        className="text-danger"
+                      />
 
-                        <MapPin
-                          size={16}
-                          className="text-danger"
-                        />
+                      <span className="text-sm text-muted">
+                        {shelter.distanceKm != null
+                          ? `${shelter.distanceKm.toFixed(1)} km away`
+                          : "Distance unknown"}
+                      </span>
 
-                        <span className="text-sm text-muted">
-                          {resource.distance}
-                        </span>
+                    </div>
 
-                      </div>
+                    <div className="flex items-center gap-2">
 
-                      <div className="flex items-center gap-2">
+                      <Users
+                        size={16}
+                        className="text-success"
+                      />
 
-                        <Phone
-                          size={16}
-                          className="text-success"
-                        />
-
-                        <span className="text-sm text-muted">
-                          {resource.phone}
-                        </span>
-
-                      </div>
+                      <span className="text-sm text-muted">
+                        {Math.max(0, shelter.capacity - shelter.occupied)} of{" "}
+                        {shelter.capacity} spaces free
+                      </span>
 
                     </div>
 
@@ -122,18 +102,15 @@ export default function QuickieHelpCard() {
 
                 </div>
 
-                <ArrowRight
-                  size={20}
-                  className="text-brand"
-                />
-
               </div>
 
             </div>
-          );
-        })}
 
-      </div>
+          ))}
+
+        </div>
+
+      )}
 
     </section>
   );

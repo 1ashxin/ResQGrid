@@ -21,12 +21,12 @@ export default function EditProfile() {
   );
 
   const [form, setForm] = useState({
-    name: savedProfile.name || "Yashana Gupta",
+    name: savedProfile.name || "",
     email: savedProfile.email || "",
     phone: savedProfile.phone || "",
     address: savedProfile.address || "",
     role: savedProfile.role || "Volunteer",
-    primarySkill: savedProfile.primarySkill || "Medical Assistance",
+    primarySkill: savedProfile.primarySkill || "",
   });
 
   const [saved, setSaved] = useState(false);

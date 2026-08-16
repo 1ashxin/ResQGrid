@@ -10,7 +10,16 @@ import {
 
 import { useRequest } from "../../context/RequestContext";
 
-export default function StatusCard() {
+// The counts, priority and timestamp below are all passed in from
+// VictimDashboard, which reads them from the backend -- they used to be
+// fixed numbers that showed "4 volunteers / 2 NGOs / High" no matter what
+// was actually happening.
+export default function StatusCard({
+  priority = null,
+  volunteerCount = 0,
+  ngoCount = 0,
+  updated = null,
+}) {
   const { requestStatus } = useRequest();
 
   let title = "No Active Request";
@@ -21,24 +30,13 @@ export default function StatusCard() {
   let bg = "bg-card";
   let Icon = Clock3;
 
-  let volunteerCount = 0;
-  let ngoCount = 0;
-  let priority = "—";
-  let updated = "—";
-
   if (requestStatus === "searching") {
     title = "Searching for Responders";
     subtitle =
       "Nearby volunteers and partner organizations are being notified.";
 
     color = "text-warning";
-    bg = "bg-card";
     Icon = Search;
-
-    volunteerCount = 4;
-    ngoCount = 2;
-    priority = "High";
-    updated = "Just Now";
   }
 
   if (requestStatus === "assigned") {
@@ -47,13 +45,16 @@ export default function StatusCard() {
       "A verified volunteer has accepted your request and is on the way.";
 
     color = "text-success";
-    bg = "bg-card";
     Icon = UserCheck;
+  }
 
-    volunteerCount = 4;
-    ngoCount = 2;
-    priority = "High";
-    updated = "30 Seconds Ago";
+  if (requestStatus === "resolved") {
+    title = "Request Resolved";
+    subtitle =
+      "Your emergency request has been marked as resolved by the responder.";
+
+    color = "text-success";
+    Icon = CheckCircle2;
   }
 
   return (
@@ -94,26 +95,26 @@ export default function StatusCard() {
 
           <InfoCard
             icon={<Users size={20} className="text-brand" />}
-            label="Volunteers Notified"
+            label="Volunteers Available"
             value={volunteerCount}
           />
 
           <InfoCard
             icon={<Building2 size={20} className="text-success" />}
-            label="NGOs Notified"
+            label="Partner NGOs"
             value={ngoCount}
           />
 
           <InfoCard
             icon={<ShieldAlert size={20} className="text-danger" />}
             label="Priority Level"
-            value={priority}
+            value={priority || "Assessing..."}
           />
 
           <InfoCard
             icon={<Clock3 size={20} className="text-warning" />}
             label="Last Updated"
-            value={updated}
+            value={updated || "—"}
           />
 
         </div>
@@ -139,7 +140,7 @@ export default function StatusCard() {
 
               <p className="mt-1 text-secondary">
                 Your assigned responder is travelling towards your
-                location. Estimated arrival time is 10–15 minutes.
+                location. Their live distance is shown below.
               </p>
 
             </div>

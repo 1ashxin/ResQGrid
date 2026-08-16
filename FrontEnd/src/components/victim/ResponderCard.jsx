@@ -1,21 +1,38 @@
 import {
   Phone,
-  MessageCircle,
-  Star,
   MapPin,
-  Clock3,
   UserRound,
+  BadgeCheck,
 } from "lucide-react";
 
-import { useRequest } from "../../context/RequestContext";
+// Shows the volunteer who actually accepted this request. Everything here
+// comes from the backend volunteer profile passed in by VictimDashboard --
+// this card used to display a fixed "Rahul Sharma, 4.9 rating, 2.4 km,
+// 11 mins" regardless of who was really assigned.
+//
+// There is no ratings system and no routing/ETA service in the backend, so
+// neither is shown: distance is straight-line (haversine) and labelled as
+// such rather than dressed up as a driving ETA.
+export default function ResponderCard({ volunteer, distanceKm = null }) {
+  if (!volunteer) {
+    return (
+      <section className="card-glass rounded-3xl p-8">
 
-export default function ResponderCard() {
-  const { requestStatus } = useRequest();
+        <p className="section-label text-success text-sm">
+          Assigned Responder
+        </p>
 
-  if (requestStatus !== "assigned") return null;
+        <p className="section-subtitle mt-4">
+          A responder has accepted your request. Their details will appear
+          here as soon as their profile loads.
+        </p>
+
+      </section>
+    );
+  }
 
   return (
-    <section className="card-glass mt-8 rounded-3xl p-8">
+    <section className="card-glass rounded-3xl p-8">
 
       <p className="section-label text-success text-sm">
         Assigned Responder
@@ -39,22 +56,24 @@ export default function ResponderCard() {
           <div>
 
             <h2 className="section-title text-3xl">
-              Rahul Sharma
+              {volunteer.full_name}
             </h2>
 
-            <p className="section-subtitle mt-1">
-              Medical Volunteer
-            </p>
+            {volunteer.skills && (
+              <p className="section-subtitle mt-1">
+                {volunteer.skills}
+              </p>
+            )}
 
             <div className="mt-3 flex items-center gap-2">
 
-              <Star
+              <BadgeCheck
                 size={18}
-                className="fill-yellow-400 text-warning"
+                className="text-success"
               />
 
               <span className="text-secondary">
-                4.9 Rating
+                Verified Volunteer
               </span>
 
             </div>
@@ -74,27 +93,27 @@ export default function ResponderCard() {
             />
 
             <p className="text-muted text-sm">
-              Distance
+              Distance Away
             </p>
 
             <h3 className="section-title mt-1">
-              2.4 km
+              {distanceKm != null ? `${distanceKm.toFixed(1)} km` : "Locating..."}
             </h3>
 
           </div>
 
           <div className="card-glass rounded-2xl p-5">
 
-            <Clock3
+            <Phone
               className="mb-2 text-brand"
             />
 
             <p className="text-muted text-sm">
-              ETA
+              Contact
             </p>
 
             <h3 className="section-title mt-1">
-              11 mins
+              {volunteer.phone || "Not provided"}
             </h3>
 
           </div>
@@ -103,27 +122,26 @@ export default function ResponderCard() {
 
       </div>
 
-      {/* Action Buttons */}
+      {/* Action Button */}
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
+      {volunteer.phone && (
 
-        <button className="btn-success flex items-center justify-center gap-3 rounded-2xl py-4 font-semibold">
+        <div className="mt-8">
 
-          <Phone size={20} />
+          <a
+            href={`tel:${volunteer.phone}`}
+            className="btn-success flex items-center justify-center gap-3 rounded-2xl py-4 font-semibold"
+          >
 
-          Call Volunteer
+            <Phone size={20} />
 
-        </button>
+            Call Volunteer
 
-        <button className="card-glass text-primary flex items-center justify-center gap-3 rounded-2xl py-4 font-semibold transition hover:scale-[1.02]">
+          </a>
 
-          <MessageCircle size={20} />
+        </div>
 
-          Message Volunteer
-
-        </button>
-
-      </div>
+      )}
 
     </section>
   );

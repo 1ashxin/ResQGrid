@@ -4,8 +4,10 @@ import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../../context/NotificationContext";
 import { listSOSRequests, listVolunteers, listShelters, listResources } from "../../api/client";
 import { transformSOSRequest, formatRelativeTime } from "../../utils/sos";
+import { transformVolunteer, transformShelter } from "../../utils/entities";
 import { buildActivityFeed } from "../../utils/activity";
-import AdminLiveMap from "../../components/shared/AdminLiveMap";
+import LiveMap from "../../components/shared/LiveMap";
+import LocationLabel from "../../components/shared/LocationLabel";
 
 import {
   LayoutDashboard,
@@ -94,54 +96,6 @@ function transformResource(resource) {
     quantity: `${Number(resource.quantity).toLocaleString()} ${resource.unit}`,
     status,
     percentage: RESOURCE_STOCK_PERCENTAGE[status] ?? 50,
-  };
-}
-
-function transformVolunteer(volunteer, sosRequests) {
-  const activeMission = sosRequests.find(
-    (sos) => sos.assignedVolunteerId === volunteer.user_id
-  );
-
-  return {
-    name: volunteer.full_name,
-
-    lat: volunteer.current_lat,
-    lng: volunteer.current_lng,
-
-    location:
-      volunteer.current_lat != null && volunteer.current_lng != null
-        ? `${volunteer.current_lat.toFixed(3)}, ${volunteer.current_lng.toFixed(3)}`
-        : "Unknown",
-
-    status: volunteer.is_available ? "Available" : "On Mission",
-    task: activeMission ? activeMission.id : "None",
-    phone: volunteer.phone,
-  };
-}
-
-function transformShelter(shelter) {
-  const percentage = Math.round(
-    (shelter.capacity_occupied / shelter.capacity_total) * 100
-  );
-
-  return {
-    name: shelter.name,
-
-    lat: shelter.location_lat,
-    lng: shelter.location_lng,
-
-    location:
-      shelter.address ||
-      `${shelter.location_lat.toFixed(3)}, ${shelter.location_lng.toFixed(3)}`,
-
-    capacity: shelter.capacity_total,
-    occupied: shelter.capacity_occupied,
-
-    status: !shelter.is_active
-      ? "Closed"
-      : percentage >= 85
-        ? "Near Capacity"
-        : "Operational",
   };
 }
 
@@ -832,7 +786,7 @@ function AdminDashboard() {
 
                   <div className="relative mt-6 h-[360px] overflow-hidden rounded-xl border border-white/5 bg-[#081522]">
 
-                    <AdminLiveMap
+                    <LiveMap
                       sosRequests={sosRequests}
                       volunteers={volunteers}
                       shelters={shelters}
@@ -1005,7 +959,11 @@ function AdminDashboard() {
 
                               <div className="flex items-center gap-2 text-gray-400">
                                 <MapPin size={14} />
-                                {request.location}
+                                <LocationLabel
+                                  lat={request.locationLat}
+                                  lng={request.locationLng}
+                                  fallback={request.location}
+                                />
                               </div>
 
                             </td>
@@ -1122,7 +1080,11 @@ function AdminDashboard() {
 
                           <div className="flex items-center gap-2 text-gray-400">
                             <MapPin size={14} />
-                            {request.location}
+                            <LocationLabel
+                              lat={request.locationLat}
+                              lng={request.locationLng}
+                              fallback={request.location}
+                            />
                           </div>
 
                         </td>
@@ -1224,7 +1186,11 @@ function AdminDashboard() {
 
                             <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
                               <MapPin size={11} />
-                              {volunteer.location}
+                              <LocationLabel
+                                lat={volunteer.lat}
+                                lng={volunteer.lng}
+                                fallback={volunteer.location}
+                              />
                             </p>
 
                           </div>
@@ -1657,7 +1623,11 @@ function AdminDashboard() {
 
                   <p className="mt-1 flex items-center gap-1 text-sm font-medium">
                     <MapPin size={14} />
-                    {selectedRequest.location}
+                    <LocationLabel
+                      lat={selectedRequest.locationLat}
+                      lng={selectedRequest.locationLng}
+                      fallback={selectedRequest.location}
+                    />
                   </p>
 
                 </div>

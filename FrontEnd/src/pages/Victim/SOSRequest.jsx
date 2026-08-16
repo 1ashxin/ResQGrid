@@ -58,11 +58,17 @@ export default function SOSRequest() {
     try {
       coords = await getCurrentPosition();
     } catch {
-      // No GPS fix available -- fall back to (0, 0) rather than block
-      // submission entirely. The typed "location" field is still sent
-      // along in the description so responders aren't left with nothing.
-      coords = { lat: 0, lng: 0 };
-      showToast("Couldn't get your GPS location -- sending with typed location only.", "info");
+      // Without a real GPS fix there are no usable coordinates -- the typed
+      // "location" field is free text, not geocoded, so it can't stand in
+      // for location_lat/location_lng. Sending (0, 0) would silently place
+      // a real emergency in the Gulf of Guinea on the admin map, so block
+      // submission instead and let the victim retry once location is available.
+      showToast(
+        "Couldn't get your GPS location. Please enable location access and try again -- responders need your exact position to find you.",
+        "error"
+      );
+      setSubmitting(false);
+      return;
     }
 
     // The backend doesn't have dedicated columns for emergency type/people
@@ -85,7 +91,16 @@ export default function SOSRequest() {
         location_lng: coords.lng,
       });
 
-      setRequestData({ ...form, id: sos.id, status: sos.status });
+      // Coordinates are kept alongside the form fields so the dashboard can
+      // centre the live map on the victim and measure real distances to
+      // shelters, rather than showing invented ones.
+      setRequestData({
+        ...form,
+        id: sos.id,
+        status: sos.status,
+        lat: coords.lat,
+        lng: coords.lng,
+      });
       setRequestStatus("searching");
 
       showToast("Emergency request submitted successfully!", "success");

@@ -1,12 +1,16 @@
 import {
   Siren,
   ArrowRight,
-  Clock3,
+  ShieldCheck,
   Users,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-export default function SOSCard() {
+// `respondersAvailable` is the real count of volunteers currently marked
+// available, passed down from VictimDashboard. The card previously showed a
+// fixed "124 Online" and an "8-15 Minutes" response estimate that nothing
+// in the system actually calculated.
+export default function SOSCard({ respondersAvailable = 0 }) {
   return (
     <section className="card-glass rounded-3xl p-8">
 
@@ -58,7 +62,7 @@ export default function SOSCard() {
 
           <div className="flex items-center gap-3">
 
-            <Clock3
+            <ShieldCheck
               size={22}
               className="text-brand"
             />
@@ -66,11 +70,11 @@ export default function SOSCard() {
             <div>
 
               <p className="text-sm text-muted">
-                Estimated Response Time
+                Request Handling
               </p>
 
               <h3 className="mt-1 text-xl font-semibold text-primary">
-                8–15 Minutes
+                Priority Triaged
               </h3>
 
             </div>
@@ -95,7 +99,7 @@ export default function SOSCard() {
               </p>
 
               <h3 className="mt-1 text-xl font-semibold text-primary">
-                124 Online
+                {respondersAvailable} Online
               </h3>
 
             </div>

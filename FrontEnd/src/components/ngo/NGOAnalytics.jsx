@@ -5,34 +5,42 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-const analytics = [
-  {
-    title: "Average Response Time",
-    value: "4 min",
-    icon: Clock3,
-    color: "text-brand",
-  },
-  {
-    title: "Mission Success Rate",
-    value: "96%",
-    icon: Target,
-    color: "text-success",
-  },
-  {
-    title: "Coverage Area",
-    value: "18 Zones",
-    icon: TrendingUp,
-    color: "text-warning",
-  },
-  {
-    title: "Verified Teams",
-    value: "24",
-    icon: ShieldCheck,
-    color: "text-brand",
-  },
-];
+// Every figure here is computed from live backend data by NGODashboard.
+// These were previously fixed marketing numbers ("4 min", "96%", "18 Zones",
+// "24") that never moved regardless of what the system was doing.
+export default function NGOAnalytics({
+  avgResponse = "N/A",
+  resolutionRate = "N/A",
+  activeCamps = 0,
+  availableVolunteers = 0,
+}) {
+  const analytics = [
+    {
+      title: "Average Response Time",
+      value: avgResponse,
+      icon: Clock3,
+      color: "text-brand",
+    },
+    {
+      title: "Requests Resolved",
+      value: resolutionRate,
+      icon: Target,
+      color: "text-success",
+    },
+    {
+      title: "Active Relief Camps",
+      value: activeCamps,
+      icon: TrendingUp,
+      color: "text-warning",
+    },
+    {
+      title: "Volunteers Available",
+      value: availableVolunteers,
+      icon: ShieldCheck,
+      color: "text-brand",
+    },
+  ];
 
-export default function NGOAnalytics() {
   return (
     <section className="mt-12">
 

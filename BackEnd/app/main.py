@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
 from .routers import geo, ngo, resources, shelters, sos, users, volunteers
+from .seed import seed_database
 
 
 def apply_schema_sql():
@@ -56,6 +57,15 @@ apply_schema_sql()
 # (currently just security_audit_logs). Tables schema.sql already created
 # above are left untouched.
 Base.metadata.create_all(bind=engine)
+
+# Loads the real NGO/shelter/resource data from BackEnd/seeds/*.csv. Safe to
+# re-run (see seed.py) -- without this the dashboards come up with an empty
+# shelters table. Seeding must never take the whole API down, so a failure
+# here is reported and the server still starts.
+try:
+    seed_database()
+except Exception as exc:  # noqa: BLE001 - startup must survive any seed failure
+    print(f"WARNING: database seeding failed ({exc}). API starting without seed data.")
 
 app = FastAPI(
     title="ResQGrid API",

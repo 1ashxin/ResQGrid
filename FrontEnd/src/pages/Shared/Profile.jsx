@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   UserCircle2,
@@ -14,6 +15,20 @@ import {
 
 import DashboardLayout from "../../layouts/DashboardLayout";
 import { useAuth } from "../../context/AuthContext";
+import { useRequest } from "../../context/RequestContext";
+import {
+  listSOSRequests,
+  listVolunteers,
+  listShelters,
+  listNGOProfiles,
+  listUsers,
+} from "../../api/client";
+
+const VICTIM_STATUS_LABELS = {
+  searching: "Searching for Responders",
+  assigned: "Volunteer Assigned",
+  resolved: "Request Resolved",
+};
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -24,20 +39,79 @@ export default function Profile() {
     logout,
   } = useAuth();
 
+  // A victim's "current request" is whatever they last submitted this
+  // session, not a fixed "Flood Emergency / Volunteer Assigned" pair.
+  const { requestStatus, requestData } = useRequest();
+
   const savedProfile = JSON.parse(
     localStorage.getItem("resqgrid_profile") || "{}"
   );
 
+  // Live per-role figures. Anything the backend genuinely tracks is counted
+  // here; the cards below used to show invented values (18 missions, a
+  // "4.9 / 5" rating with no ratings system behind it, "1,284 managed
+  // users") for every account that opened this page.
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const [sos, volunteers, shelters, ngos, users] = await Promise.all([
+          listSOSRequests(),
+          listVolunteers(),
+          listShelters(),
+          listNGOProfiles(),
+          listUsers(),
+        ]);
+        if (cancelled) return;
+
+        const myProfile = volunteers.find((v) => v.user_id === user.id);
+        const myNGO = ngos.find((n) => n.user_id === user.id);
+
+        setStats({
+          completedMissions: sos.filter(
+            (r) => r.assigned_volunteer_id === user.id && r.status === "resolved"
+          ).length,
+          activeMissions: sos.filter(
+            (r) =>
+              r.assigned_volunteer_id === user.id &&
+              (r.status === "assigned" || r.status === "in_progress")
+          ).length,
+          skills: myProfile?.skills || null,
+          isAvailable: myProfile?.is_available ?? null,
+          orgName: myNGO?.org_name || null,
+          ngoVolunteers: myNGO?.volunteer_count ?? null,
+          campsManaged: shelters.filter((s) => s.managed_by_user_id === user.id)
+            .length,
+          totalUsers: users.length,
+        });
+      } catch {
+        if (!cancelled) setStats(null);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
   const profile = {
-    name: savedProfile.name || user?.name || "Rahul Sharma",
-    email: savedProfile.email || user?.email || "rahul@example.com",
-    phone: savedProfile.phone || user?.phone || "+91 9876543210",
+    name: savedProfile.name || user?.name || "Unnamed User",
+    email: savedProfile.email || user?.email || "Not provided",
+    phone: savedProfile.phone || user?.phone || "Not provided",
     address: savedProfile.address || "",
     role: savedProfile.role || role || user?.role || "volunteer",
-    joined: user?.created_at || "August 2026",
-    primarySkill:
-      savedProfile.primarySkill || "Medical Assistance",
+    joined: user?.created_at || "Unknown",
+    primarySkill: savedProfile.primarySkill || stats?.skills || "Not specified",
   };
+
+  const show = (value, fallback = "--") =>
+    value === null || value === undefined ? fallback : value;
 
   function handleLogout() {
     logout();
@@ -183,7 +257,7 @@ export default function Profile() {
                     />
                   }
                   title="Emergency Contact"
-                  value="+91 98765 11111"
+                  value={show(savedProfile.emergencyContact, "Not provided")}
                 />
 
                 <RoleCard
@@ -194,7 +268,7 @@ export default function Profile() {
                     />
                   }
                   title="Blood Group"
-                  value="B+"
+                  value={show(savedProfile.bloodGroup, "Not provided")}
                 />
 
                 <RoleCard
@@ -205,7 +279,7 @@ export default function Profile() {
                     />
                   }
                   title="Current Request"
-                  value="Flood Emergency"
+                  value={show(requestData?.emergency, "None active")}
                 />
 
                 <RoleCard
@@ -216,7 +290,7 @@ export default function Profile() {
                     />
                   }
                   title="Status"
-                  value="Volunteer Assigned"
+                  value={VICTIM_STATUS_LABELS[requestStatus] || "No Active Request"}
                 />
               </>
             )}
@@ -243,7 +317,7 @@ export default function Profile() {
                     />
                   }
                   title="Completed Missions"
-                  value="18"
+                  value={show(stats?.completedMissions)}
                 />
 
                 <RoleCard
@@ -253,8 +327,8 @@ export default function Profile() {
                       size={22}
                     />
                   }
-                  title="Volunteer Rating"
-                  value="4.9 / 5"
+                  title="Active Missions"
+                  value={show(stats?.activeMissions)}
                 />
 
                 <RoleCard
@@ -281,7 +355,7 @@ export default function Profile() {
                     />
                   }
                   title="Organization"
-                  value="Helping Hands Foundation"
+                  value={show(stats?.orgName, "Not registered")}
                 />
 
                 <RoleCard
@@ -292,7 +366,7 @@ export default function Profile() {
                     />
                   }
                   title="Registered Volunteers"
-                  value="124"
+                  value={show(stats?.ngoVolunteers)}
                 />
 
                 <RoleCard
@@ -303,7 +377,7 @@ export default function Profile() {
                     />
                   }
                   title="Relief Camps Managed"
-                  value="5"
+                  value={show(stats?.campsManaged)}
                 />
 
                 <RoleCard
@@ -341,7 +415,7 @@ export default function Profile() {
                     />
                   }
                   title="Managed Users"
-                  value="1,284"
+                  value={show(stats?.totalUsers)}
                 />
 
                 <RoleCard

@@ -161,3 +161,20 @@ CREATE TABLE IF NOT EXISTS resources (
 CREATE INDEX IF NOT EXISTS idx_sos_requests_status ON sos_requests(status);
 CREATE INDEX IF NOT EXISTS idx_sos_requests_created_at ON sos_requests(created_at);
 CREATE INDEX IF NOT EXISTS idx_volunteer_profiles_is_available ON volunteer_profiles(is_available);
+
+-- -----------------------------------------------------------------------------
+-- DATA REPAIR: legacy uppercase enum values
+-- -----------------------------------------------------------------------------
+-- models.py maps these enums with values_callable, so they are stored as the
+-- lowercase VALUE ('pending'), not the Python member NAME ('PENDING'). Rows
+-- written before that mapping was added kept the uppercase name, and loading
+-- one now raises LookupError: "'PENDING' is not among the defined enum
+-- values" -- a 500 on GET /sos/ and GET /users/, i.e. every dashboard that
+-- lists requests.
+--
+-- Normalising here (rather than in a one-off script) means any environment
+-- carrying those legacy rows repairs itself on the next startup. Each
+-- statement is a no-op once the values are already lowercase.
+UPDATE users         SET role   = lower(role)   WHERE role   <> lower(role);
+UPDATE sos_requests  SET status = lower(status) WHERE status <> lower(status);
+UPDATE resources     SET status = lower(status) WHERE status <> lower(status);

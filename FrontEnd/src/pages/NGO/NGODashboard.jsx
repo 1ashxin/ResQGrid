@@ -137,6 +137,30 @@ export default function NGODashboard() {
     };
   });
 
+  // Real operational analytics, derived from the same live data the rest of
+  // this dashboard renders.
+  const resolvedRequests = sosRequests.filter((r) => r.rawStatus === "resolved");
+
+  const avgResponseMinutes =
+    resolvedRequests.length > 0
+      ? Math.round(
+          resolvedRequests.reduce(
+            (sum, r) => sum + (new Date(r.updatedAt) - new Date(r.createdAt)) / 60000,
+            0
+          ) / resolvedRequests.length
+        )
+      : null;
+
+  const analyticsValues = {
+    avgResponse: avgResponseMinutes != null ? `${avgResponseMinutes} min` : "N/A",
+    resolutionRate:
+      sosRequests.length > 0
+        ? `${Math.round((resolvedRequests.length / sosRequests.length) * 100)}%`
+        : "N/A",
+    activeCamps: camps.length,
+    availableVolunteers: rawVolunteers.filter((v) => v.is_available).length,
+  };
+
   const statValues = {
     activeVolunteers: volunteers.length,
     activeSOS: activeRequests.length,
@@ -161,7 +185,7 @@ export default function NGODashboard() {
 
       <ReliefCampCard camps={camps} />
 
-      <NGOAnalytics />
+      <NGOAnalytics {...analyticsValues} />
 
     </DashboardLayout>
   );

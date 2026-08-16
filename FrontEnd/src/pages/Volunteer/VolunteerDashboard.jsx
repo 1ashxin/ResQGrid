@@ -18,9 +18,16 @@ import {
 
 import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../../context/NotificationContext";
-import { listSOSRequests, listVolunteers, assignVolunteer, updateSOSStatus } from "../../api/client";
+import {
+  listSOSRequests,
+  listVolunteers,
+  listShelters,
+  assignVolunteer,
+  updateSOSStatus,
+} from "../../api/client";
 import { updateVolunteerLocation } from "../../services/api";
 import { transformSOSRequest, haversineKm } from "../../utils/sos";
+import { transformVolunteer, transformShelter } from "../../utils/entities";
 
 export default function VolunteerDashboard() {
   const { user } = useAuth();
@@ -28,6 +35,7 @@ export default function VolunteerDashboard() {
   const [requests, setRequests] = useState([]);
   const [allRequests, setAllRequests] = useState([]);
   const [volunteers, setVolunteers] = useState([]);
+  const [shelters, setShelters] = useState([]);
   const [activeMission, setActiveMission] = useState(null);
   const [myPosition, setMyPosition] = useState(null);
 
@@ -40,15 +48,17 @@ export default function VolunteerDashboard() {
 
     async function loadDashboardData(isInitialLoad) {
       try {
-        const [rawSOS, rawVolunteers] = await Promise.all([
+        const [rawSOS, rawVolunteers, rawShelters] = await Promise.all([
           listSOSRequests(),
           listVolunteers(),
+          listShelters(),
         ]);
         if (cancelled) return;
         const transformed = rawSOS.map(transformSOSRequest);
         setAllRequests(transformed);
         setRequests(transformed.filter((sos) => sos.rawStatus === "pending"));
         setVolunteers(rawVolunteers);
+        setShelters(rawShelters);
       } catch {
         if (!cancelled && isInitialLoad) {
           showToast("Couldn't load requests from the backend. Is it running?", "error");
@@ -132,6 +142,42 @@ export default function VolunteerDashboard() {
     completedToday: resolvedToday.length,
     avgResponse: avgResponseMinutes != null ? `${avgResponseMinutes} min` : "N/A",
   };
+
+  // Map layers. An accepted mission stays on the map even though it's no
+  // longer "pending", so the volunteer can still see where they're headed.
+  const mapRequests = activeMission
+    ? [activeMission, ...requests.filter((r) => r.id !== activeMission.id)]
+    : requests;
+
+  // Own marker is drawn separately from myPosition, so drop it from the
+  // volunteer layer to avoid stacking two markers on the same spot.
+  const mapVolunteers = volunteers
+    .filter((v) => v.user_id !== user.id)
+    .map((v) => transformVolunteer(v, allRequests));
+
+  const mapShelters = shelters.map(transformShelter);
+
+  const nearestShelterKm =
+    myPosition && mapShelters.length > 0
+      ? Math.min(
+          ...mapShelters
+            .filter((s) => s.lat != null && s.lng != null)
+            .map((s) => haversineKm(myPosition.lat, myPosition.lng, s.lat, s.lng))
+        )
+      : null;
+
+  const mapSummary = [
+    { title: "Open Requests", value: requests.length },
+    { title: "Responders Online", value: volunteers.length },
+    { title: "Shelters Mapped", value: mapShelters.length },
+    {
+      title: "Nearest Shelter",
+      value:
+        nearestShelterKm != null && Number.isFinite(nearestShelterKm)
+          ? `${nearestShelterKm.toFixed(1)} km`
+          : "Locating...",
+    },
+  ];
 
   async function handleAccept(request) {
     try {
@@ -307,7 +353,15 @@ export default function VolunteerDashboard() {
 
       <div className="mt-12">
 
-        <ResponseMap />
+        <ResponseMap
+          subtitle="Live emergencies, fellow responders and nearby shelters around your current position."
+          sosRequests={mapRequests}
+          volunteers={mapVolunteers}
+          shelters={mapShelters}
+          myPosition={myPosition}
+          myLabel="Your position"
+          summary={mapSummary}
+        />
 
       </div>
 

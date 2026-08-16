@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+
 import {
   Users,
   Siren,
@@ -5,34 +7,86 @@ import {
   Clock3,
 } from "lucide-react";
 
-const stats = [
-  {
-    icon: Users,
-    value: "412+",
-    label: "Active Volunteers",
-    color: "text-sky-300",
-  },
-  {
-    icon: Siren,
-    value: "84",
-    label: "Emergency Requests",
-    color: "text-red-300",
-  },
-  {
-    icon: Tent,
-    value: "26",
-    label: "Relief Camps",
-    color: "text-amber-300",
-  },
-  {
-    icon: Clock3,
-    value: "< 5 min",
-    label: "Average Response Time",
-    color: "text-emerald-300",
-  },
-];
+import { listSOSRequests, listVolunteers, listShelters } from "../../api/client";
 
+// These four figures are read from the live system rather than written by
+// hand -- the landing page used to advertise "412+ volunteers / 84 requests
+// / 26 camps / < 5 min", none of which had any relationship to what the
+// platform actually held.
+//
+// If the backend can't be reached the cards fall back to "--" instead of
+// inventing numbers, since this is the public-facing page.
 export default function Stats() {
+  const [values, setValues] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const [sos, volunteers, shelters] = await Promise.all([
+          listSOSRequests(),
+          listVolunteers(),
+          listShelters(),
+        ]);
+        if (cancelled) return;
+
+        const resolved = sos.filter((r) => r.status === "resolved");
+        const avgMinutes =
+          resolved.length > 0
+            ? Math.round(
+                resolved.reduce(
+                  (sum, r) =>
+                    sum + (new Date(r.updated_at) - new Date(r.created_at)) / 60000,
+                  0
+                ) / resolved.length
+              )
+            : null;
+
+        setValues({
+          volunteers: volunteers.length,
+          requests: sos.length,
+          camps: shelters.filter((s) => s.is_active).length,
+          avgResponse: avgMinutes != null ? `${avgMinutes} min` : "N/A",
+        });
+      } catch {
+        if (!cancelled) setValues(null);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const stats = [
+    {
+      icon: Users,
+      value: values ? values.volunteers : "--",
+      label: "Registered Volunteers",
+      color: "text-sky-300",
+    },
+    {
+      icon: Siren,
+      value: values ? values.requests : "--",
+      label: "Emergency Requests",
+      color: "text-red-300",
+    },
+    {
+      icon: Tent,
+      value: values ? values.camps : "--",
+      label: "Relief Camps",
+      color: "text-amber-300",
+    },
+    {
+      icon: Clock3,
+      value: values ? values.avgResponse : "--",
+      label: "Average Response Time",
+      color: "text-emerald-300",
+    },
+  ];
+
   return (
     <section
       id="stats"

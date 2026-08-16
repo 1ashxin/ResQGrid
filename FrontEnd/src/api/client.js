@@ -31,6 +31,10 @@ export function loginUser(payload) {
   return api.post("/users/login", payload).then((res) => res.data);
 }
 
+export function listUsers() {
+  return api.get("/users/").then((res) => res.data);
+}
+
 // =======================
 // SOS Requests
 // =======================
