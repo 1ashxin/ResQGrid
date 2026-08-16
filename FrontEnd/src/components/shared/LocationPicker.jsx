@@ -29,13 +29,17 @@ L.Icon.Default.mergeOptions({
 // Cities that have seeded shelters behind them, so a request placed here
 // has real nearby relief camps to match against. Handy when the whole team
 // is demoing from one room and needs requests spread across the country.
+//
+// Deliberately offset a kilometre or two from the shelter itself: an
+// emergency reported at the exact coordinates of a relief camp would sit
+// on top of that marker and report a nearest shelter "0.0 km away".
 const PRESETS = [
-  { name: "Delhi", lat: 28.7041, lng: 77.1025 },
-  { name: "Guwahati", lat: 26.1445, lng: 91.7362 },
-  { name: "Chennai", lat: 13.0827, lng: 80.2707 },
-  { name: "Kochi", lat: 9.9312, lng: 76.2673 },
-  { name: "Kolkata", lat: 22.5726, lng: 88.3639 },
-  { name: "Bengaluru", lat: 12.9716, lng: 77.5946 },
+  { name: "Delhi", lat: 28.6841, lng: 77.1225 },
+  { name: "Guwahati", lat: 26.1645, lng: 91.7562 },
+  { name: "Chennai", lat: 13.0627, lng: 80.2507 },
+  { name: "Kochi", lat: 9.9512, lng: 76.2873 },
+  { name: "Kolkata", lat: 22.5526, lng: 88.3439 },
+  { name: "Bengaluru", lat: 12.9916, lng: 77.6146 },
 ];
 
 

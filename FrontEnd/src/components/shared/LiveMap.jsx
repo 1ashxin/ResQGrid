@@ -6,6 +6,7 @@ import {
   Marker,
   Popup,
   CircleMarker,
+  Pane,
   useMap,
 } from "react-leaflet";
 
@@ -57,6 +58,22 @@ const sosIcon = L.divIcon({
 // re-centres on the actual data as soon as any of it loads.
 const DEFAULT_CENTER = [18.5204, 73.8567];
 const DEFAULT_ZOOM = 12;
+
+// Leaflet puts every Marker in markerPane (z-index 600) and every
+// CircleMarker in overlayPane (z-index 400), so the SOS badge painted over
+// the volunteer and shelter dots no matter what order they appear in below.
+// Since a responder is usually standing near the emergency they're handling,
+// that hid exactly the markers you most want to see. Giving each layer its
+// own pane puts the ordering under our control: the small dots sit above the
+// big SOS disc, and the viewer's own position stays on top of everything.
+// Ordered biggest marker at the bottom: the 34px SOS badge acts as a
+// backdrop and the small dots always stay readable on top of it.
+const PANES = {
+  sos: { name: "resq-sos", zIndex: 610 },
+  shelters: { name: "resq-shelters", zIndex: 620 },
+  volunteers: { name: "resq-volunteers", zIndex: 630 },
+  me: { name: "resq-me", zIndex: 640 },
+};
 
 function hasCoords(item) {
   return item.lat != null && item.lng != null;
@@ -176,6 +193,12 @@ function LiveMap({
       />
 
 
+      {/* Draw order for the marker layers -- see PANES above */}
+      {Object.values(PANES).map((pane) => (
+        <Pane key={pane.name} name={pane.name} style={{ zIndex: pane.zIndex }} />
+      ))}
+
+
       {/* ========================= */}
       {/* SOS MARKERS */}
       {/* ========================= */}
@@ -187,6 +210,7 @@ function LiveMap({
             key={sos.id}
             position={[sos.locationLat, sos.locationLng]}
             icon={sosIcon}
+            pane={PANES.sos.name}
           >
             <Popup>
               <strong>🚨 SOS Request</strong>
@@ -228,11 +252,15 @@ function LiveMap({
         <CircleMarker
           key={`${volunteer.name}-${index}`}
           center={[volunteer.lat, volunteer.lng]}
-          radius={8}
+          radius={7}
+          pane={PANES.volunteers.name}
+          // White ring so a responder standing on top of a red SOS badge
+          // still reads as a separate marker rather than blending into it.
           pathOptions={{
-            color: "green",
-            fillColor: "green",
-            fillOpacity: 0.9,
+            color: "#ffffff",
+            weight: 2,
+            fillColor: "#22c55e",
+            fillOpacity: 1,
           }}
         >
           <Popup>
@@ -271,11 +299,13 @@ function LiveMap({
         <CircleMarker
           key={`${shelter.name}-${index}`}
           center={[shelter.lat, shelter.lng]}
-          radius={9}
+          radius={8}
+          pane={PANES.shelters.name}
           pathOptions={{
-            color: "gold",
-            fillColor: "gold",
-            fillOpacity: 0.9,
+            color: "#ffffff",
+            weight: 2,
+            fillColor: "#facc15",
+            fillOpacity: 1,
           }}
         >
           <Popup>
@@ -312,12 +342,13 @@ function LiveMap({
       {myPosition && (
         <CircleMarker
           center={[myPosition.lat, myPosition.lng]}
-          radius={10}
+          radius={8}
+          pane={PANES.me.name}
           pathOptions={{
-            color: "#38bdf8",
+            color: "#ffffff",
+            weight: 3,
             fillColor: "#38bdf8",
             fillOpacity: 1,
-            weight: 3,
           }}
         >
           <Popup>
