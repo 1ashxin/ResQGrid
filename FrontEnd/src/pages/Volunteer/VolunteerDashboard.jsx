@@ -38,6 +38,9 @@ export default function VolunteerDashboard() {
   const [shelters, setShelters] = useState([]);
   const [activeMission, setActiveMission] = useState(null);
   const [myPosition, setMyPosition] = useState(null);
+  // Bumped after accepting or completing a mission to re-sync immediately
+  // instead of waiting out the rest of the 15s poll.
+  const [refreshTick, setRefreshTick] = useState(0);
 
   const isVolunteer = !!user && user.role === "volunteer";
 
@@ -59,6 +62,20 @@ export default function VolunteerDashboard() {
         setRequests(transformed.filter((sos) => sos.rawStatus === "pending"));
         setVolunteers(rawVolunteers);
         setShelters(rawShelters);
+
+        // The mission in progress is whatever the backend says is assigned
+        // to this volunteer -- not something remembered only in this tab.
+        // Held purely in local state it vanished on any refresh or page
+        // change: an assigned request is filtered out of the pending list,
+        // so the "Complete Mission" button disappeared with it and the
+        // request was stuck as assigned with no way to close it.
+        setActiveMission(
+          transformed.find(
+            (sos) =>
+              sos.assignedVolunteerId === user.id &&
+              (sos.rawStatus === "assigned" || sos.rawStatus === "in_progress")
+          ) || null
+        );
       } catch {
         if (!cancelled && isInitialLoad) {
           showToast("Couldn't load requests from the backend. Is it running?", "error");
@@ -73,7 +90,7 @@ export default function VolunteerDashboard() {
       clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isVolunteer]);
+  }, [isVolunteer, refreshTick]);
 
   // Pushes this volunteer's live GPS location to the PostGIS-backed
   // endpoint (services/api.js) every 20s, so "nearest volunteer" queries
@@ -182,9 +199,12 @@ export default function VolunteerDashboard() {
   async function handleAccept(request) {
     try {
       await assignVolunteer(request.id, user.id);
+      // Shown straight away so the hand-off feels instant; the refresh
+      // below replaces it with the backend's own version a moment later.
       setRequests((prev) => prev.filter((r) => r.id !== request.id));
       setActiveMission(request);
       showToast("You have accepted the emergency request.", "success");
+      setRefreshTick((tick) => tick + 1);
     } catch {
       showToast("Couldn't accept the request. Please try again.", "error");
     }
@@ -193,11 +213,13 @@ export default function VolunteerDashboard() {
   async function handleComplete() {
     try {
       await updateSOSStatus(activeMission.id, "resolved");
-      showToast("Mission marked as completed.", "success");
-    } catch {
-      showToast("Couldn't update the request status. Please try again.", "error");
-    } finally {
       setActiveMission(null);
+      showToast("Mission marked as completed.", "success");
+      setRefreshTick((tick) => tick + 1);
+    } catch {
+      // Keep the mission on screen when the update fails -- clearing it
+      // here used to leave the volunteer with no way back to it.
+      showToast("Couldn't update the request status. Please try again.", "error");
     }
   }
 
