@@ -191,7 +191,15 @@ function AdminDashboard() {
     },
   ];
 
-  const criticalCount = sosRequests.filter(
+  // Once a request is resolved it stops being something to act on, so it
+  // drops off the live board -- the counts, the table, the map and the
+  // recent list all work from this. The resolved rows are still fetched and
+  // still feed the activity feed ("SOS request resolved") and the
+  // resolution-rate figures, they just aren't presented as open work.
+  const activeSOS = sosRequests.filter((item) => item.rawStatus !== "resolved");
+  const resolvedCount = sosRequests.length - activeSOS.length;
+
+  const criticalCount = activeSOS.filter(
     (item) => item.priority === "CRITICAL"
   ).length;
 
@@ -213,7 +221,7 @@ function AdminDashboard() {
     (occupiedCapacity / totalCapacity) * 100
   );
 
-  const filteredSOS = sosRequests.filter((item) =>
+  const filteredSOS = activeSOS.filter((item) =>
     `${item.id} ${item.request} ${item.location} ${item.priority} ${item.status}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
@@ -392,7 +400,7 @@ function AdminDashboard() {
 
                 {item.name === "SOS Requests" && (
                   <span className="ml-auto rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] text-red-400">
-                    {sosRequests.length}
+                    {activeSOS.length}
                   </span>
                 )}
 
@@ -645,7 +653,7 @@ function AdminDashboard() {
                   <div className="flex items-center justify-between">
 
                     <p className="text-sm text-gray-400">
-                      Total SOS
+                      Active SOS
                     </p>
 
                     <div className="rounded-lg bg-red-500/10 p-2">
@@ -658,11 +666,13 @@ function AdminDashboard() {
                   </div>
 
                   <h3 className="mt-4 text-3xl font-bold">
-                    {sosRequests.length}
+                    {activeSOS.length}
                   </h3>
 
                   <p className="mt-2 text-sm text-red-400">
-                    Live from backend
+                    {resolvedCount > 0
+                      ? `${resolvedCount} resolved and cleared`
+                      : "Live from backend"}
                   </p>
 
                 </div>
@@ -787,7 +797,7 @@ function AdminDashboard() {
                   <div className="relative mt-6 h-[360px] overflow-hidden rounded-xl border border-white/5 bg-[#081522]">
 
                     <LiveMap
-                      sosRequests={sosRequests}
+                      sosRequests={activeSOS}
                       volunteers={volunteers}
                       shelters={shelters}
                     />
@@ -928,7 +938,7 @@ function AdminDashboard() {
 
                     <tbody className="divide-y divide-white/10">
 
-                      {sosRequests.slice(0, 4).map(
+                      {activeSOS.slice(0, 4).map(
                         (request) => (
                           <tr
                             key={request.id}
