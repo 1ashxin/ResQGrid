@@ -4,6 +4,7 @@ import {
   MapContainer,
   TileLayer,
   Marker,
+  Circle,
   useMap,
   useMapEvents,
 } from "react-leaflet";
@@ -17,6 +18,7 @@ import iconShadow from "leaflet/dist/images/marker-shadow.png";
 import { Crosshair, MapPin } from "lucide-react";
 
 import LocationLabel from "./LocationLabel";
+import { describeAccuracy } from "../../utils/geolocation";
 
 L.Icon.Default.mergeOptions({
   iconUrl: icon,
@@ -77,6 +79,7 @@ export default function LocationPicker({
   recenterKey = 0,
 }) {
   const center = value ? [value.lat, value.lng] : [22.9734, 78.6569]; // India
+  const accuracy = describeAccuracy(value?.accuracy);
 
   return (
     <div className="space-y-4">
@@ -96,7 +99,9 @@ export default function LocationPicker({
           <button
             key={preset.name}
             type="button"
-            onClick={() => onChange({ lat: preset.lat, lng: preset.lng })}
+            onClick={() =>
+              onChange({ lat: preset.lat, lng: preset.lng }, { recenter: true })
+            }
             className="rounded-xl border border-white/10 px-3 py-2 text-xs text-secondary transition hover:bg-white/5 hover:text-primary"
           >
             {preset.name}
@@ -119,6 +124,21 @@ export default function LocationPicker({
           <ClickHandler onPick={onChange} />
 
           <Recenter position={value} trigger={recenterKey} />
+
+          {/* How sure the device is. Seeing the uncertainty makes it obvious
+              whether the pin is worth correcting or already spot on. */}
+          {value && value.accuracy != null && value.accuracy > 50 && (
+            <Circle
+              center={[value.lat, value.lng]}
+              radius={value.accuracy}
+              pathOptions={{
+                color: "#38bdf8",
+                fillColor: "#38bdf8",
+                fillOpacity: 0.12,
+                weight: 1,
+              }}
+            />
+          )}
 
           {value && (
             <Marker
@@ -148,11 +168,30 @@ export default function LocationPicker({
               {" "}
               ({value.lat.toFixed(5)}, {value.lng.toFixed(5)})
             </span>
+
+            {accuracy && (
+              <span
+                className={`mt-1 block text-xs ${
+                  accuracy.trusted ? "text-success" : "text-warning"
+                }`}
+              >
+                {accuracy.text}
+                {!accuracy.trusted &&
+                  " Drag the pin if it's off — a phone with GPS will be far more precise."}
+              </span>
+            )}
+
+            {gpsStatus === "manual" && (
+              <span className="mt-1 block text-xs text-muted">
+                Location set by hand.
+              </span>
+            )}
           </span>
         ) : (
           <span>
-            Tap the map, pick a city, or use your location to set where help
-            should be sent.
+            {gpsStatus === "locating"
+              ? "Finding your location..."
+              : "Tap the map, pick a city, or use your location to set where help should be sent."}
           </span>
         )}
       </div>

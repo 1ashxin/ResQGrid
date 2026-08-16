@@ -7,17 +7,32 @@ Higher score = higher priority.
 
 
 PRIORITY_RULES = {
+    # Condition of the people involved
     "trapped": 40,
     "critical": 40,
     "unconscious": 40,
     "bleeding": 35,
     "medical": 30,
     "injured": 30,
-    "fire": 30,
     "drowning": 30,
+    "stranded": 25,
     "pregnant": 25,
     "child": 25,
     "elderly": 20,
+
+    # Type of disaster. Without these a request whose only description is
+    # "Emergency: Earthquake" scored 0 and came out LOW, because the SOS
+    # form's disaster dropdown fed words no rule matched.
+    "earthquake": 40,
+    "landslide": 40,
+    "collapse": 40,
+    "tsunami": 40,
+    "gas leak": 35,
+    "fire": 30,
+    "flood": 30,
+    "cyclone": 30,
+
+    # Supply needs -- real, but not life-threatening on their own
     "food": 10,
     "water": 10,
     "shelter": 10,

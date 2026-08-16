@@ -1,27 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useNotification } from "../../context/NotificationContext";
 import { useRequest } from "../../context/RequestContext";
 import { createSOSRequest } from "../../api/client";
 import LocationPicker from "../../components/shared/LocationPicker";
-
-// Wraps the browser's geolocation API in a promise, with a short timeout --
-// SOS submission shouldn't hang forever waiting on a GPS fix that may never
-// come (e.g. permission denied, indoors, older device).
-function getCurrentPosition() {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error("Geolocation not supported by this browser"));
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      (err) => reject(err),
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
-  });
-}
+import { watchBestPosition } from "../../utils/geolocation";
 
 export default function SOSRequest() {
   const navigate = useNavigate();
@@ -44,36 +28,54 @@ export default function SOSRequest() {
 
   const [submitting, setSubmitting] = useState(false);
 
-  // Where help will actually be sent. Seeded from the browser's own
-  // geolocation as a first guess, but always correctable -- on a laptop
-  // that guess comes from Wi-Fi/IP lookup rather than GPS and can land
-  // kilometres away, and during a demo the whole team is in one room.
+  // Where help will actually be sent. The pin places itself and keeps
+  // correcting as the device narrows the fix down (see utils/geolocation),
+  // so in the normal case nobody has to touch the map at all. Manual
+  // adjustment is the fallback for a bad fix or a demo, not the workflow.
   const [coords, setCoords] = useState(null);
   const [gpsStatus, setGpsStatus] = useState("idle");
   const [recenterKey, setRecenterKey] = useState(0);
+  const stopWatchRef = useRef(null);
 
   function locateMe() {
     setGpsStatus("locating");
-    getCurrentPosition()
-      .then((position) => {
-        setCoords(position);
+    stopWatchRef.current?.();
+
+    stopWatchRef.current = watchBestPosition({
+      onUpdate: (fix) => {
+        setCoords(fix);
+        // Follow the pin while it's still self-correcting -- each update is
+        // strictly more accurate than the last.
         setRecenterKey((k) => k + 1);
         setGpsStatus("done");
-      })
-      .catch(() => {
+      },
+      onError: () => {
         setGpsStatus("failed");
         showToast(
           "Couldn't detect your location. Tap the map to set it manually.",
           "info"
         );
-      });
+      },
+    });
   }
 
-  // One attempt on open, so the common case needs no interaction.
+  // Starts locating the moment the form opens, so a fix is usually ready
+  // before the rest of the form is filled in.
   useEffect(() => {
     locateMe();
+    return () => stopWatchRef.current?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Any hand-placed point wins: stop the watch so an incoming fix can't
+  // silently drag the pin back off the spot someone just chose.
+  function setCoordsManually(next, options = {}) {
+    stopWatchRef.current?.();
+    stopWatchRef.current = null;
+    setGpsStatus("manual");
+    setCoords({ lat: next.lat, lng: next.lng, accuracy: null });
+    if (options.recenter) setRecenterKey((k) => k + 1);
+  }
 
   function handleChange(e) {
     setForm({
@@ -217,14 +219,14 @@ export default function SOSRequest() {
               </p>
 
               <p className="mt-1 text-xs text-muted">
-                Responders are sent to this exact point. Drag the pin or tap
-                the map if the detected spot isn't right.
+                Responders are sent to this exact point. It sharpens on its
+                own for a few seconds — only correct it if it looks wrong.
               </p>
 
               <div className="mt-4">
                 <LocationPicker
                   value={coords}
-                  onChange={setCoords}
+                  onChange={setCoordsManually}
                   onUseGPS={locateMe}
                   gpsStatus={gpsStatus}
                   recenterKey={recenterKey}
