@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useNotification } from "../../context/NotificationContext";
 import { useRequest } from "../../context/RequestContext";
 import { createSOSRequest } from "../../api/client";
+import LocationPicker from "../../components/shared/LocationPicker";
 
 // Wraps the browser's geolocation API in a promise, with a short timeout --
 // SOS submission shouldn't hang forever waiting on a GPS fix that may never
@@ -43,6 +44,37 @@ export default function SOSRequest() {
 
   const [submitting, setSubmitting] = useState(false);
 
+  // Where help will actually be sent. Seeded from the browser's own
+  // geolocation as a first guess, but always correctable -- on a laptop
+  // that guess comes from Wi-Fi/IP lookup rather than GPS and can land
+  // kilometres away, and during a demo the whole team is in one room.
+  const [coords, setCoords] = useState(null);
+  const [gpsStatus, setGpsStatus] = useState("idle");
+  const [recenterKey, setRecenterKey] = useState(0);
+
+  function locateMe() {
+    setGpsStatus("locating");
+    getCurrentPosition()
+      .then((position) => {
+        setCoords(position);
+        setRecenterKey((k) => k + 1);
+        setGpsStatus("done");
+      })
+      .catch(() => {
+        setGpsStatus("failed");
+        showToast(
+          "Couldn't detect your location. Tap the map to set it manually.",
+          "info"
+        );
+      });
+  }
+
+  // One attempt on open, so the common case needs no interaction.
+  useEffect(() => {
+    locateMe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function handleChange(e) {
     setForm({
       ...form,
@@ -52,24 +84,20 @@ export default function SOSRequest() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setSubmitting(true);
 
-    let coords;
-    try {
-      coords = await getCurrentPosition();
-    } catch {
-      // Without a real GPS fix there are no usable coordinates -- the typed
-      // "location" field is free text, not geocoded, so it can't stand in
-      // for location_lat/location_lng. Sending (0, 0) would silently place
-      // a real emergency in the Gulf of Guinea on the admin map, so block
-      // submission instead and let the victim retry once location is available.
+    // Never submit without real coordinates. Sending (0, 0) as a fallback
+    // would drop a live emergency into the Gulf of Guinea on every map, so
+    // the request is held back until a point has been set -- by GPS, by
+    // tapping the map, or by picking a city.
+    if (!coords) {
       showToast(
-        "Couldn't get your GPS location. Please enable location access and try again -- responders need your exact position to find you.",
+        "Set your location on the map first -- responders need a point to head to.",
         "error"
       );
-      setSubmitting(false);
       return;
     }
+
+    setSubmitting(true);
 
     // The backend doesn't have dedicated columns for emergency type/people
     // count yet, so they're folded into the free-text description.
@@ -175,12 +203,35 @@ export default function SOSRequest() {
             <input
               type="text"
               name="location"
-              placeholder="Current Location"
+              placeholder="Landmark / Address Details"
               value={form.location}
               onChange={handleChange}
               className="input-glass rounded-xl p-4"
               required
             />
+
+            <div className="rounded-2xl border border-white/10 p-5">
+
+              <p className="text-sm font-semibold text-primary">
+                Pinpoint Your Location
+              </p>
+
+              <p className="mt-1 text-xs text-muted">
+                Responders are sent to this exact point. Drag the pin or tap
+                the map if the detected spot isn't right.
+              </p>
+
+              <div className="mt-4">
+                <LocationPicker
+                  value={coords}
+                  onChange={setCoords}
+                  onUseGPS={locateMe}
+                  gpsStatus={gpsStatus}
+                  recenterKey={recenterKey}
+                />
+              </div>
+
+            </div>
 
             <input
               type="number"

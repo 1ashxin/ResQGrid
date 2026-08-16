@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   ArrowRight,
   Users,
@@ -7,7 +8,45 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { listSOSRequests, listVolunteers, listShelters } from "../../api/client";
+
 export default function Hero() {
+  // The "Live Response" panel is exactly what it claims to be -- these three
+  // counts come from the backend. They used to be fixed numbers (84 / 412 /
+  // 26) that stayed put no matter what the platform actually held.
+  const [live, setLive] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const [sos, volunteers, shelters] = await Promise.all([
+          listSOSRequests(),
+          listVolunteers(),
+          listShelters(),
+        ]);
+        if (cancelled) return;
+        setLive({
+          activeRequests: sos.filter((r) => r.status !== "resolved").length,
+          volunteersOnline: volunteers.filter((v) => v.is_available).length,
+          reliefCamps: shelters.filter((s) => s.is_active).length,
+        });
+      } catch {
+        if (!cancelled) setLive(null);
+      }
+    }
+
+    load();
+    const interval = setInterval(load, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const show = (value) => (live ? value : "--");
+
   return (
     <section className="relative overflow-hidden px-6 pb-24 pt-36">
 
@@ -115,7 +154,7 @@ export default function Hero() {
                 </div>
 
                 <span className="text-xl font-bold text-danger">
-                  84
+                  {show(live?.activeRequests)}
                 </span>
 
               </div>
@@ -136,7 +175,7 @@ export default function Hero() {
                 </div>
 
                 <span className="text-xl font-bold text-success">
-                  412
+                  {show(live?.volunteersOnline)}
                 </span>
 
               </div>
@@ -157,7 +196,7 @@ export default function Hero() {
                 </div>
 
                 <span className="text-xl font-bold text-brand">
-                  26
+                  {show(live?.reliefCamps)}
                 </span>
 
               </div>

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import {
   MapContainer,
@@ -63,26 +63,45 @@ function hasCoords(item) {
 }
 
 
-// Automatically fit map around all active locations
-function MapUpdater({ sosRequests, volunteers, shelters, myPosition }) {
+function hasSOSCoords(sos) {
+  return sos.locationLat != null && sos.locationLng != null;
+}
+
+
+// Fits the map around everything on it -- but only when the set of markers
+// actually changes, never on a plain refresh.
+//
+// The dashboards rebuild these arrays from scratch every 15s poll, so
+// depending on the arrays themselves re-ran this on every poll and threw
+// away whatever the user had panned or zoomed to, roughly every 15 seconds.
+// Keying off a signature of *what* is on the map (SOS ids, marker counts,
+// whether we have an own-position yet) means a newly reported emergency
+// still pulls the view to include it, while a volunteer's GPS drifting a
+// few metres -- or no change at all -- leaves the view alone.
+function MapController({ sosRequests, volunteers, shelters, myPosition }) {
   const map = useMap();
+  const lastSignature = useRef(null);
 
-  useEffect(() => {
-    const locations = [
-      ...sosRequests
-        .filter((sos) => sos.locationLat != null && sos.locationLng != null)
-        .map((sos) => [sos.locationLat, sos.locationLng]),
+  const signature = [
+    sosRequests.filter(hasSOSCoords).map((s) => s.id).sort().join(","),
+    volunteers.filter(hasCoords).length,
+    shelters.filter(hasCoords).length,
+    myPosition ? "me" : "",
+  ].join("|");
 
+  function collectLocations() {
+    return [
+      ...sosRequests.filter(hasSOSCoords).map((s) => [s.locationLat, s.locationLng]),
       ...volunteers.filter(hasCoords).map((v) => [v.lat, v.lng]),
-
       ...shelters.filter(hasCoords).map((s) => [s.lat, s.lng]),
-
       ...(myPosition ? [[myPosition.lat, myPosition.lng]] : []),
     ];
+  }
 
-    if (locations.length === 0) {
-      return;
-    }
+  function fitAll() {
+    const locations = collectLocations();
+
+    if (locations.length === 0) return;
 
     if (locations.length === 1) {
       map.setView(locations[0], 13);
@@ -93,9 +112,34 @@ function MapUpdater({ sosRequests, volunteers, shelters, myPosition }) {
       padding: [40, 40],
       maxZoom: 13,
     });
-  }, [sosRequests, volunteers, shelters, myPosition, map]);
+  }
 
-  return null;
+  useEffect(() => {
+    if (signature === lastSignature.current) return;
+    lastSignature.current = signature;
+    fitAll();
+    // Deliberately keyed on the signature alone: the marker arrays change
+    // identity on every poll, and depending on them is what caused the
+    // constant re-zoom.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature, map]);
+
+  // Leaflet's own control classes handle pointer events, so clicks here
+  // don't fall through and pan the map underneath.
+  return (
+    <div className="leaflet-bottom leaflet-right">
+      <div className="leaflet-control leaflet-bar">
+        <button
+          type="button"
+          onClick={fitAll}
+          title="Fit the map around every marker"
+          className="block cursor-pointer border-none bg-white px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-100"
+        >
+          Recenter
+        </button>
+      </div>
+    </div>
+  );
 }
 
 
@@ -117,7 +161,7 @@ function LiveMap({
       className="h-full w-full"
     >
 
-      <MapUpdater
+      <MapController
         sosRequests={sosRequests}
         volunteers={volunteers}
         shelters={shelters}
