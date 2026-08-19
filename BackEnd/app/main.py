@@ -16,8 +16,11 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 
 from .database import Base, engine
+from .rate_limit import limiter
 from .routers import geo, ngo, resources, shelters, sos, users, volunteers
 from .seed import seed_database
 
@@ -72,6 +75,13 @@ app = FastAPI(
     description="Backend API for disaster relief coordination: SOS requests, volunteers, shelters, and user roles.",
     version="0.1.0",
 )
+
+# Rate limiting (see app/rate_limit.py). The limiter object has to hang off
+# app.state -- that is where slowapi's decorator looks for it at request
+# time -- and the handler turns a tripped limit into a clean 429 JSON reply
+# instead of a 500.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Lets the frontend (running on a different port during development) call
 # this API from the browser. Vite's default dev server ports are covered;

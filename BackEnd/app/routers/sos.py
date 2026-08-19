@@ -5,11 +5,12 @@ requests: creating one, viewing them, updating their status, and assigning a
 volunteer to help. All endpoints here start with "/sos".
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from .. import models, schemas, geo_spatial
 from ..database import get_db
+from ..rate_limit import SOS_RATE_LIMIT, limiter
 from ..geo import haversine_km
 from core_security_and_logic.priority_engine import calculate_priority,priority_category
 from ..audit import log_security_event
@@ -18,13 +19,23 @@ router = APIRouter(prefix="/sos", tags=["SOS Requests"])
 
 
 @router.post("/", response_model=schemas.SOSRequestOut, status_code=status.HTTP_201_CREATED)
-def create_sos_request(payload: schemas.SOSRequestCreate, db: Session = Depends(get_db)):
+@limiter.limit(SOS_RATE_LIMIT)
+def create_sos_request(
+    request: Request,
+    payload: schemas.SOSRequestCreate,
+    db: Session = Depends(get_db),
+):
     """
     A victim (or the low-bandwidth SOS form) sends their name, phone,
     a description of their situation, and their location. The sensitive
     fields are automatically encrypted before hitting the database (see
     EncryptedString in security.py) -- we don't have to do anything extra
     here for that; SQLAlchemy handles it for us behind the scenes.
+
+    Submissions are rate limited per visitor (see app/rate_limit.py) so a
+    script cannot bury real emergencies under fake ones. The `request`
+    argument is unused by the logic below -- slowapi needs it on the
+    signature to identify the caller.
 
     priority_score is computed immediately from the description via
     Member 5's priority engine (core_security_and_logic/priority_engine.py),
