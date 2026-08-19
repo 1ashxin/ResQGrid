@@ -14,6 +14,8 @@ import {
   Phone,
   Flame,
   CheckCircle2,
+  Navigation,
+  MapPinned,
 } from "lucide-react";
 
 import { useAuth } from "../../context/AuthContext";
@@ -26,7 +28,7 @@ import {
   updateSOSStatus,
 } from "../../api/client";
 import { updateVolunteerLocation } from "../../services/api";
-import { transformSOSRequest, haversineKm } from "../../utils/sos";
+import { transformSOSRequest, haversineKm, directionsUrl } from "../../utils/sos";
 import { transformVolunteer, transformShelter } from "../../utils/entities";
 
 export default function VolunteerDashboard() {
@@ -210,6 +212,23 @@ export default function VolunteerDashboard() {
     }
   }
 
+  // Moves an accepted mission from "assigned" to "in_progress". The status
+  // already existed in the backend enum but nothing ever set it, so the
+  // victim saw no difference between a volunteer who had just accepted and
+  // one already at their door.
+  async function handleArrived() {
+    try {
+      const updated = await updateSOSStatus(activeMission.id, "in_progress");
+      setActiveMission((mission) =>
+        mission ? { ...mission, rawStatus: updated.status } : mission
+      );
+      showToast("Marked as arrived. The victim can see this now.", "success");
+      setRefreshTick((tick) => tick + 1);
+    } catch {
+      showToast("Couldn't update the request status. Please try again.", "error");
+    }
+  }
+
   async function handleComplete() {
     try {
       await updateSOSStatus(activeMission.id, "resolved");
@@ -349,15 +368,39 @@ export default function VolunteerDashboard() {
 
             <div className="mt-8 grid gap-4 md:grid-cols-2">
 
-              <button className="btn-success rounded-2xl py-4 font-semibold">
+              <a
+                href={`tel:${activeMission.victimPhone}`}
+                className="btn-success flex items-center justify-center gap-2 rounded-2xl py-4 font-semibold"
+              >
+                <Phone size={18} />
                 Call Victim
-              </button>
+              </a>
 
-              <button className="btn-primary rounded-2xl py-4 font-semibold">
+              <a
+                href={directionsUrl(
+                  activeMission.locationLat,
+                  activeMission.locationLng,
+                  myPosition
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary flex items-center justify-center gap-2 rounded-2xl py-4 font-semibold"
+              >
+                <Navigation size={18} />
                 Navigate
-              </button>
+              </a>
 
             </div>
+
+            {activeMission.rawStatus === "assigned" && (
+              <button
+                onClick={handleArrived}
+                className="btn-primary mt-4 w-full rounded-2xl py-4 font-semibold"
+              >
+                <MapPinned size={18} className="mr-2 inline" />
+                I've Arrived
+              </button>
+            )}
 
             <button
               onClick={handleComplete}

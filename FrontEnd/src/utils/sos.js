@@ -68,6 +68,25 @@ export function haversineKm(lat1, lng1, lat2, lng2) {
   return EARTH_RADIUS_KM * c;
 }
 
+// Builds a Google Maps directions link to a victim's coordinates. Chosen
+// over a geo: URI because this one works everywhere -- desktop browsers
+// open the web map, phones hand off to the installed Maps app.
+//
+// `from` is the volunteer's own live position when geolocation has
+// resolved; without it Maps just routes from wherever the device thinks it
+// is, which is the same answer in practice but slower to draw.
+export function directionsUrl(lat, lng, from = null) {
+  if (lat == null || lng == null) return null;
+  const params = new URLSearchParams({
+    api: "1",
+    destination: `${lat},${lng}`,
+  });
+  if (from?.lat != null && from?.lng != null) {
+    params.set("origin", `${from.lat},${from.lng}`);
+  }
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
+}
+
 export function transformSOSRequest(sos) {
   return {
     id: sos.id,

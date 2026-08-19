@@ -13,7 +13,11 @@ import {
 // There is no ratings system and no routing/ETA service in the backend, so
 // neither is shown: distance is straight-line (haversine) and labelled as
 // such rather than dressed up as a driving ETA.
-export default function ResponderCard({ volunteer, distanceKm = null }) {
+// `status` is the raw backend SOS status. "assigned" means the volunteer
+// has accepted but not yet reported arriving; "in_progress" means they have
+// tapped "I've Arrived" on their own dashboard.
+export default function ResponderCard({ volunteer, distanceKm = null, status = null }) {
+  const hasArrived = status === "in_progress";
   if (!volunteer) {
     return (
       <section className="card-glass rounded-3xl p-8">
@@ -36,6 +40,12 @@ export default function ResponderCard({ volunteer, distanceKm = null }) {
 
       <p className="section-label text-success text-sm">
         Assigned Responder
+      </p>
+
+      <p className="section-subtitle mt-2">
+        {hasArrived
+          ? "Your responder has arrived at your location."
+          : "Your responder is on their way."}
       </p>
 
       <div className="mt-8 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
@@ -138,6 +148,12 @@ export default function ResponderCard({ volunteer, distanceKm = null }) {
             Call Volunteer
 
           </a>
+
+          {/* tel: links do nothing on most desktop browsers, so the number
+              is also shown as selectable text to copy or dial by hand. */}
+          <p className="text-muted mt-3 text-center text-sm">
+            Or dial <span className="select-all font-semibold">{volunteer.phone}</span>
+          </p>
 
         </div>
 

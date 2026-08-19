@@ -174,6 +174,7 @@ export default function VictimDashboard() {
           <ResponderCard
             volunteer={assignedVolunteer}
             distanceKm={responderDistanceKm}
+            status={liveRequest?.status}
           />
         </section>
       )}
