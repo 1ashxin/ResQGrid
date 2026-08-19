@@ -12,6 +12,7 @@ import {
   Users,
   MapPin,
   Phone,
+  PhoneOff,
   Flame,
   CheckCircle2,
   Navigation,
@@ -28,7 +29,7 @@ import {
   updateSOSStatus,
 } from "../../api/client";
 import { updateVolunteerLocation } from "../../services/api";
-import { transformSOSRequest, haversineKm, directionsUrl } from "../../utils/sos";
+import { transformSOSRequest, haversineKm, directionsUrl, isDialable } from "../../utils/sos";
 import { transformVolunteer, transformShelter } from "../../utils/entities";
 
 export default function VolunteerDashboard() {
@@ -356,7 +357,11 @@ export default function VolunteerDashboard() {
               <InfoCard
                 icon={<Phone className="text-success" />}
                 title="Contact Number"
-                value={activeMission.victimPhone}
+                value={
+                  isDialable(activeMission.victimPhone)
+                    ? activeMission.victimPhone
+                    : "Not provided"
+                }
               />
 
               <InfoCard
@@ -368,13 +373,28 @@ export default function VolunteerDashboard() {
 
             <div className="mt-8 grid gap-4 md:grid-cols-2">
 
-              <a
-                href={`tel:${activeMission.victimPhone}`}
-                className="btn-success flex items-center justify-center gap-2 rounded-2xl py-4 font-semibold"
-              >
-                <Phone size={18} />
-                Call Victim
-              </a>
+              {/* Not every mission comes with a number to ring -- a one-tap
+                  SOS has none by definition. Rendering the link anyway gave
+                  a button that looked live and did nothing, so when there is
+                  nothing to dial it says so instead. */}
+              {isDialable(activeMission.victimPhone) ? (
+                <a
+                  href={`tel:${activeMission.victimPhone}`}
+                  className="btn-success flex items-center justify-center gap-2 rounded-2xl py-4 font-semibold"
+                >
+                  <Phone size={18} />
+                  Call Victim
+                </a>
+              ) : (
+                <div
+                  aria-disabled="true"
+                  title="This request was sent without a contact number."
+                  className="flex cursor-not-allowed items-center justify-center gap-2 rounded-2xl border border-white/10 py-4 font-semibold text-muted"
+                >
+                  <PhoneOff size={18} />
+                  No Contact Number
+                </div>
+              )}
 
               <a
                 href={directionsUrl(

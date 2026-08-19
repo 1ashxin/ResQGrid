@@ -1,11 +1,67 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Siren } from "lucide-react";
 import { useNotification } from "../../context/NotificationContext";
 import { useRequest } from "../../context/RequestContext";
-import { createSOSRequest } from "../../api/client";
+import { createSOSRequest, updateSOSPriority } from "../../api/client";
 import LocationPicker from "../../components/shared/LocationPicker";
 import { watchBestPosition } from "../../utils/geolocation";
+
+// ---- One-tap emergency SOS ------------------------------------------------
+// What the panic button sends in place of the fields nobody filled in.
+//
+// The description keeps the same "Label: value" shape the form below uses,
+// because utils/sos.js reads those lines back out for the admin and
+// volunteer boards. Without them the request would render as a wall of raw
+// text where every other row shows an emergency type.
+const PANIC_DESCRIPTION = [
+  "Emergency: Unspecified — one-tap SOS",
+  "People needing help: Unknown",
+  "Sent from the emergency button. The victim did not stop to enter any",
+  "details, so nothing is known about their situation. Treat as critical",
+  "until someone makes contact.",
+].join("\n");
+
+// The backend requires both of these (schemas.SOSRequestCreate), and a
+// panic press has neither. They are written out in full rather than left
+// blank so a dispatcher reading the board sees "we don't know" instead of
+// an empty cell that looks like a display bug.
+const PANIC_VICTIM_NAME = "Unidentified — one-tap SOS";
+const PANIC_VICTIM_PHONE = "Not provided";
+
+// A panic press carries no words for the priority engine to score, and the
+// engine only counts keywords -- so left alone this would land near the
+// bottom of the admin board, which is the opposite of what the button is
+// for. 60 puts it at the top of HIGH: ahead of every described supply
+// request, still behind any request whose own text earned CRITICAL. Set
+// explicitly rather than relying on the wording above happening to contain
+// a scoring keyword, which would break silently if anyone reworded it.
+const PANIC_PRIORITY_SCORE = 60;
+
+// How long the button waits for the location watch (already running since
+// the page opened) to produce a fix before giving up.
+const PANIC_FIX_TIMEOUT_MS = 12000;
+
+// Turns a failed submission into something a victim can act on.
+//
+// Two traps here. The rate limiter's 429 reports itself as `error`, not
+// `detail` -- that body is written by slowapi's own handler, not FastAPI's
+// -- so reading only `detail` reported a refused submission as "couldn't
+// reach the server, please try again", which is both untrue and the worst
+// advice available: retrying is the one thing that cannot work. And the
+// raw text it sends ("Rate limit exceeded: 10 per 1 hour") is written for
+// whoever tuned the limit, not for someone who needs help now.
+function submissionErrorMessage(err) {
+  if (err.response?.status === 429) {
+    return "Too many requests have been sent from this connection recently. If this is life-threatening, call your local emergency number now.";
+  }
+
+  return (
+    err.response?.data?.detail ||
+    err.response?.data?.error ||
+    "Couldn't reach the server. Please try again."
+  );
+}
 
 export default function SOSRequest() {
   const navigate = useNavigate();
@@ -37,6 +93,19 @@ export default function SOSRequest() {
   const [recenterKey, setRecenterKey] = useState(0);
   const stopWatchRef = useRef(null);
 
+  const [sendingPanic, setSendingPanic] = useState(false);
+
+  // A mirror of `coords` that waitForFix can read. The panic handler is
+  // async, so by the time it looks the state variable captured in its
+  // closure is whatever it was when the button was pressed -- i.e. still
+  // null, even though a fix has since arrived.
+  const coordsRef = useRef(null);
+  const fixPollRef = useRef(null);
+
+  useEffect(() => {
+    coordsRef.current = coords;
+  }, [coords]);
+
   function locateMe() {
     setGpsStatus("locating");
     stopWatchRef.current?.();
@@ -63,7 +132,10 @@ export default function SOSRequest() {
   // before the rest of the form is filled in.
   useEffect(() => {
     locateMe();
-    return () => stopWatchRef.current?.();
+    return () => {
+      stopWatchRef.current?.();
+      if (fixPollRef.current) clearInterval(fixPollRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -82,6 +154,103 @@ export default function SOSRequest() {
       ...form,
       [e.target.name]: e.target.value,
     });
+  }
+
+  // Resolves with the best fix available, or null if none arrives in time.
+  // The watch started on mount is usually already done by the time anyone
+  // presses the button; this only actually waits in the first few seconds
+  // after the page opens.
+  function waitForFix(timeoutMs = PANIC_FIX_TIMEOUT_MS) {
+    return new Promise((resolve) => {
+      if (coordsRef.current) {
+        resolve(coordsRef.current);
+        return;
+      }
+
+      const startedAt = Date.now();
+
+      fixPollRef.current = setInterval(() => {
+        const elapsed = Date.now() - startedAt;
+
+        if (coordsRef.current || elapsed > timeoutMs) {
+          clearInterval(fixPollRef.current);
+          fixPollRef.current = null;
+          resolve(coordsRef.current);
+        }
+      }, 250);
+    });
+  }
+
+  // One press, no fields, no confirmation step -- for someone who cannot
+  // afford the twenty seconds the form below takes. Everything the backend
+  // needs that we don't have is filled with the explicit placeholders above.
+  async function handleEmergencySOS() {
+    setSendingPanic(true);
+
+    try {
+      // A location is the one thing that genuinely cannot be defaulted: a
+      // request with no point on the map gives responders nowhere to go.
+      let fix = coordsRef.current;
+
+      if (!fix) {
+        // Permission was refused or the device has no way to locate itself.
+        // Waiting would just burn twelve seconds before failing anyway.
+        if (gpsStatus === "failed") {
+          showToast(
+            "Location is switched off, so this can't be sent instantly. Set your location on the map below and submit the form.",
+            "error"
+          );
+          return;
+        }
+
+        showToast("Getting your location — hold on…", "info");
+        fix = await waitForFix();
+      }
+
+      if (!fix) {
+        showToast(
+          "Couldn't get your location in time. Tap the map below to set it, then submit.",
+          "error"
+        );
+        return;
+      }
+
+      const sos = await createSOSRequest({
+        victim_name: PANIC_VICTIM_NAME,
+        victim_phone: PANIC_VICTIM_PHONE,
+        description: PANIC_DESCRIPTION,
+        location_lat: fix.lat,
+        location_lng: fix.lng,
+      });
+
+      // Best effort, and deliberately not awaited into the failure path
+      // below: the request is already filed, which is the part that matters.
+      // If this call fails the request simply keeps the score the priority
+      // engine gave it rather than the pinned one.
+      try {
+        await updateSOSPriority(sos.id, PANIC_PRIORITY_SCORE);
+      } catch {
+        // Ignored on purpose -- see above.
+      }
+
+      setRequestData({
+        ...form,
+        id: sos.id,
+        status: sos.status,
+        lat: fix.lat,
+        lng: fix.lng,
+        emergency: "Unspecified — one-tap SOS",
+      });
+      setRequestStatus("searching");
+
+      showToast("Emergency SOS sent. Help is being alerted now.", "success");
+
+      navigate("/victim");
+    } catch (err) {
+      showToast(submissionErrorMessage(err), "error");
+    } finally {
+      setSendingPanic(false);
+    }
   }
 
   async function handleSubmit(e) {
@@ -141,10 +310,7 @@ export default function SOSRequest() {
 
       navigate("/victim");
     } catch (err) {
-      showToast(
-        err.response?.data?.detail || "Couldn't reach the server. Please try again.",
-        "error"
-      );
+      showToast(submissionErrorMessage(err), "error");
     } finally {
       setSubmitting(false);
     }
@@ -176,6 +342,43 @@ export default function SOSRequest() {
           <p className="section-subtitle mt-3">
             Fill in the details below so nearby volunteers can assist you.
           </p>
+
+          {/* One-tap SOS. Sits above the form on purpose: someone who needs
+              this cannot be asked to scroll past six fields to find it. */}
+          <div className="mt-8 rounded-2xl border border-white/10 p-6">
+
+            <button
+              type="button"
+              onClick={handleEmergencySOS}
+              disabled={sendingPanic}
+              className="btn-danger flex w-full items-center justify-center gap-3 rounded-2xl py-5 text-lg font-semibold transition-all duration-300 hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+            >
+
+              <Siren size={22} />
+
+              {sendingPanic ? "Sending SOS…" : "Send Emergency SOS Now"}
+
+            </button>
+
+            <p className="mt-4 text-center text-sm text-muted">
+              Sends immediately using your current location, with no details
+              and no confirmation. Use this if you can't fill in the form —
+              a responder will call to find out more.
+            </p>
+
+          </div>
+
+          <div className="mt-8 flex items-center gap-4">
+
+            <div className="h-px flex-1 bg-white/10" />
+
+            <span className="text-xs uppercase tracking-wider text-muted">
+              or send full details
+            </span>
+
+            <div className="h-px flex-1 bg-white/10" />
+
+          </div>
 
           <form
             onSubmit={handleSubmit}

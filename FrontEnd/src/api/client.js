@@ -57,6 +57,12 @@ export function updateSOSStatus(sosId, status) {
     .then((res) => res.data);
 }
 
+export function updateSOSPriority(sosId, priorityScore) {
+  return api
+    .patch(`/sos/${sosId}/priority`, { priority_score: priorityScore })
+    .then((res) => res.data);
+}
+
 export function assignVolunteer(sosId, volunteerUserId) {
   return api
     .patch(`/sos/${sosId}/assign`, {

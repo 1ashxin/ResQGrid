@@ -68,6 +68,20 @@ export function haversineKm(lat1, lng1, lat2, lng2) {
   return EARTH_RADIUS_KM * c;
 }
 
+// Whether a victim's phone number is something a tel: link can actually
+// dial. It can fail to be in two ways: the one-tap SOS fills the field with
+// a placeholder because a panic press has no number to give, and the form
+// itself accepts any text a victim types into it.
+//
+// Counts digits instead of matching a particular placeholder string, so
+// this keeps working if that wording is ever changed -- and it also catches
+// a number too mangled to ring. Seven is a floor no real number falls
+// under, short enough to still accept a local landline without an area code.
+export function isDialable(phone) {
+  if (!phone) return false;
+  return (String(phone).match(/\d/g) || []).length >= 7;
+}
+
 // Builds a Google Maps directions link to a victim's coordinates. Chosen
 // over a geo: URI because this one works everywhere -- desktop browsers
 // open the web map, phones hand off to the installed Maps app.
