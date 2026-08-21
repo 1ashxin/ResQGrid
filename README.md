@@ -146,4 +146,10 @@ Open your browser and navigate to `http://localhost:5173`.
 ## Authors & Acknowledgments
 
 * **Project Name:** ResQGrid – Disaster Relief Coordination Platform
-* **Frontend Lead:** Developed as part of a 6-member hackathon team.
+* **Team Members:**
+**Yashana Gupta:** Frontend (Victim/ Volunteer Dashboard)
+**Samriddhi Shedpure:** Frontend (Admin/ NGO Dashboard)
+**Ashwin Thakur:** Backend (APIs & Database)
+**Rajit Acharya:** Geospatial Logic & Backend Support
+**Akshat Muchhala:** Data & Security
+**Swara Kalekar:** Map Integration & Testing
